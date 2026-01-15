@@ -234,14 +234,6 @@
     </div>
     
     <script>
-        // Toplam ziyaret sayısını güncelle
-        function updateTotalVisits() {
-            const totalVisits = parseInt(localStorage.getItem('totalVisits')) || 0;
-            const newTotal = totalVisits + 1;
-            localStorage.setItem('totalVisits', newTotal.toString());
-            document.getElementById('totalVisits').textContent = newTotal;
-        }
-
         // Simüle edilmiş anlık kullanıcı sayısını güncelle
         function updateOnlineUsers() {
             // Gerçek zamanlı olmayan, simüle edilmiş bir değer
@@ -254,7 +246,6 @@
 
         // Sayfa yüklendiğinde linkleri yükle ve ziyaret bilgilerini güncelle
         document.addEventListener('DOMContentLoaded', function() {
-            updateTotalVisits();
             updateOnlineUsers();
             
             // Her 10 saniyede bir anlık kullanıcı sayısını güncelle
