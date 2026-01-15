@@ -139,7 +139,7 @@
         
         /* Admin Panel */
         .admin-panel {
-            display: block;
+            display: none;
         }
         
         .panel-header {
@@ -473,6 +473,17 @@
 </head>
 <body>
     <div class="container">
+        <!-- Admin Giriş -->
+        <div id="adminLogin" class="admin-login">
+            <h1>Reushub - Admin</h1>
+            <div class="input-group">
+                <label for="adminPassword">Şifre</label>
+                <input type="password" id="adminPassword" placeholder="Şifre girin">
+            </div>
+            <button class="login-btn" onclick="checkAdminPassword()">GİRİŞ</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+
         <!-- Admin Panel -->
         <div id="adminPanel" class="admin-panel">
             <div class="panel-header">
@@ -565,6 +576,26 @@
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const editLinkForm = document.getElementById('editLinkForm');
         
+        // Admin şifre kontrolü
+        function checkAdminPassword() {
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            
+            if (password === '114464') {
+                // Şifre doğru, giriş formunu gizle ve admin panelini göster
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                errorDiv.textContent = '';
+                
+                // Panel içeriğini yükle
+                loadGitHubSettings();
+                loadLinks();
+            } else {
+                // Şifre yanlış, hata mesajı göster
+                errorDiv.textContent = 'Yanlış şifre!';
+            }
+        }
+        
         // GitHub ayarları
         let githubSettings = {
             token: localStorage.getItem('githubToken') || '',
@@ -572,10 +603,10 @@
             branch: localStorage.getItem('githubBranch') || 'main'
         };
         
-        // Sayfa yüklendiğinde linkleri yükle ve ayarları doldur
+        // Sayfa yüklendiğinde sadece giriş formunu göster
         window.addEventListener('DOMContentLoaded', function() {
-            loadGitHubSettings();
-            loadLinks();
+            document.getElementById('adminLogin').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
         });
         
         // GitHub ayarlarını yükle
