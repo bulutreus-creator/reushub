@@ -1,14 +1,1 @@
-[
-  {
-    "isim": "Test Link 1",
-    "link": "https://example.com/test1",
-    "foto": "",
-    "clickCount": 0
-  },
-  {
-    "isim": "Test Link 2",
-    "link": "https://example.com/test2",
-    "foto": "",
-    "clickCount": 0
-  }
-]
+[]

@@ -215,14 +215,6 @@
             </div>
             <p>Bu sitede yer alan bağlantılar üçüncü taraf içeriklere yönlendirme amaçlıdır.
 İçeriklerin doğruluğu veya hukuki sorumluluğu tarafımıza ait değildir.</p>
-            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
-                <div style="background: rgba(255, 215, 0, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 215, 0, 0.3);">
-                    <span style="color: #ffd700; font-weight: 500;">👥 Anlık Kullanıcılar: <span id="onlineUsers">0</span></span>
-                </div>
-                <div style="background: rgba(255, 105, 180, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 105, 180, 0.3);">
-                    <span style="color: #ff69b4; font-weight: 500;">🔥 Toplam Ziyaret: <span id="totalVisits">0</span></span>
-                </div>
-            </div>
         </div>
         
         <div class="links-section">
@@ -234,23 +226,8 @@
     </div>
     
     <script>
-        // Simüle edilmiş anlık kullanıcı sayısını güncelle
-        function updateOnlineUsers() {
-            // Gerçek zamanlı olmayan, simüle edilmiş bir değer
-            // 10-50 arasında rastgele bir değer oluştur
-            const minUsers = 10;
-            const maxUsers = 50;
-            const onlineUsers = Math.floor(Math.random() * (maxUsers - minUsers + 1)) + minUsers;
-            document.getElementById('onlineUsers').textContent = onlineUsers;
-        }
-
-        // Sayfa yüklendiğinde linkleri yükle ve ziyaret bilgilerini güncelle
+        // Sayfa yüklendiğinde linkleri yükle
         document.addEventListener('DOMContentLoaded', function() {
-            updateOnlineUsers();
-            
-            // Her 10 saniyede bir anlık kullanıcı sayısını güncelle
-            setInterval(updateOnlineUsers, 10000);
-            
             fetchLinks();
         });
         
@@ -267,10 +244,7 @@
                     console.log('links.json dosyası bulunamadı.');
                 }
                 
-                // 2. Toplam ziyaret sayısını güncelle
-                updateTotalVisitsFromLinks(allLinks);
-                
-                // 3. Linkleri göster
+                // 2. Linkleri göster
                 displayLinks(allLinks);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
@@ -278,86 +252,6 @@
             }
         }
         
-        // Tıklanma sayısını GitHub'da güncelle
-        async function updateClickCountOnGithub(linkUrl) {
-            try {
-                // Mevcut linkleri al
-                const response = await fetch('links.json');
-                const links = await response.json();
-                
-                // Linki bul ve tıklanma sayısını arttır
-                const linkIndex = links.findIndex(link => link.link === linkUrl);
-                if (linkIndex !== -1) {
-                    links[linkIndex].clickCount = (links[linkIndex].clickCount || 0) + 1;
-                    
-                    // links.json'u güncelle
-                    // Bu işlem sadece server tarafında yapılabilir, client tarafında CORS hatası alırız
-                    // Bu nedenle şu anda sadece localStorage'da saklıyoruz
-                    // Gerçek bir server varsa, buraya server endpoint'i ekleyebilirsiniz
-                }
-            } catch (error) {
-                console.error('GitHub üzerinde tıklanma sayısı güncellenemedi:', error);
-                // Hata oluşursa localStorage'da sakla
-                const counts = getClickCounts();
-                counts[linkUrl] = (counts[linkUrl] || 0) + 1;
-                localStorage.setItem('linkClickCounts', JSON.stringify(counts));
-            }
-        }
-        
-        // Toplam tıklanma sayısını hesapla
-        function getTotalClicks(links) {
-            return links.reduce((total, link) => total + (link.clickCount || 0), 0);
-        }
-        
-        // Tüm linklerin tıklanma sayılarını toplam ziyaret olarak göster
-        function updateTotalVisitsFromLinks(links) {
-            const totalClicks = getTotalClicks(links);
-            document.getElementById('totalVisits').textContent = totalClicks;
-        }
-        
-        // Tıklanma sayılarını localStorage'dan al
-        function getClickCounts() {
-            const counts = localStorage.getItem('linkClickCounts');
-            return counts ? JSON.parse(counts) : {};
-        }
-
-        // Tıklanma sayısını güncelle
-        function updateClickCount(linkUrl) {
-            const counts = getClickCounts();
-            counts[linkUrl] = (counts[linkUrl] || 0) + 1;
-            localStorage.setItem('linkClickCounts', JSON.stringify(counts));
-        }
-
-        // Tıklanma sayısına göre sırala
-        function sortLinksByClicks(links) {
-            const clickCounts = getClickCounts();
-            
-            return [...links].map(link => ({
-                ...link,
-                clickCount: clickCounts[link.link] || 0
-            })).sort((a, b) => b.clickCount - a.clickCount);
-        }
-
-        // Fisher-Yates karıştırma algoritması
-        function shuffleArray(array) {
-            const shuffled = [...array];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        }
-
-        // Tıklama takibi yap ve yönlendir
-        async function trackAndRedirect(url) {
-            // GitHub'da tıklanma sayısını güncelle
-            await updateClickCountOnGithub(url);
-            // localStorage'da da güncelle
-            updateClickCount(url);
-            // Yönlendir
-            window.open(url, '_blank');
-        }
-
         function displayLinks(links) {
             const container = document.getElementById('links-container');
             
@@ -366,36 +260,19 @@
                 return;
             }
             
-            // Linkleri tıklanma sayısına göre sırala
-            const sortedLinks = [...links].sort((a, b) => {
-                const aClicks = (a.clickCount || 0) + (getClickCounts()[a.link] || 0);
-                const bClicks = (b.clickCount || 0) + (getClickCounts()[b.link] || 0);
-                return bClicks - aClicks;
-            });
-            
-            // Tıklanma sayılarını al
-            const clickCounts = getClickCounts();
-            
-            container.innerHTML = sortedLinks.map(link => {
-                // GitHub'daki tıklanma sayısı + localStorage'daki tıklanma sayısı
-                const totalClicks = (link.clickCount || 0) + (clickCounts[link.link] || 0);
-                return `
+            container.innerHTML = links.map(link => `
                 <div class="link-card">
                     ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
-                        <p style="color: #ffd700; font-size: 14px; margin: 10px 0; font-weight: 500;">
-                            🔥 ${totalClicks} Kişi Bu İçeriğe Girdi
-                        </p>
                         <div class="link-btn-container">
-                            <a href="#" onclick="trackAndRedirect('${link.link}')" class="link-btn" rel="noopener noreferrer">
+                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer">
                                 İÇERİĞE GİT
                             </a>
                         </div>
                     </div>
                 </div>
-            `;
-            }).join('');
+            `).join('');
         }
     </script>
 </body>
