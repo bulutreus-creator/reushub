@@ -288,7 +288,7 @@
             
             container.innerHTML = links.map(link => `
                 <div class="link-card">
-                    <img src="${link.foto || 'https://picsum.photos/300/200'}" alt="${link.isim}" class="link-card-image">
+                    ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">
