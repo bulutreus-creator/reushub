@@ -745,6 +745,14 @@
             }
         }
         
+        // Unicode destekli base64 kodlama fonksiyonu
+        function b64EncodeUnicode(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, 
+                function toSolidBytes(match, p1) {
+                    return String.fromCharCode('0x' + p1);
+                }));
+        }
+        
         // Links.json'u GitHub'a güncelle
         async function updateLinksJsonOnGithub(links) {
             try {
@@ -763,9 +771,13 @@
                     }
                 }
                 
+                // JSON'u Unicode destekli base64 olarak kodla
+                const jsonString = JSON.stringify(links, null, 2);
+                const base64Content = b64EncodeUnicode(jsonString);
+                
                 const requestBody = {
                     message: fileExists ? 'Update links' : 'Create links.json',
-                    content: btoa(JSON.stringify(links, null, 2)),
+                    content: base64Content,
                     branch: githubSettings.branch
                 };
                 
@@ -787,6 +799,8 @@
                     errorMessage += 'Dosya güncellenmiş olabilir. Lütfen sayfayı yenileyin ve tekrar deneyin.';
                 } else if (error.message.includes('Not Found')) {
                     errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
+                } else if (error.message.includes('invalid characters')) {
+                    errorMessage += 'Geçersiz karakterler tespit edildi! Türkçe karakterler kullanılabilir, lütfen sayfayı yenileyin ve tekrar deneyin.';
                 } else {
                     errorMessage += error.message;
                 }
