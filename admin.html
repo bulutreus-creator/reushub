@@ -857,6 +857,35 @@
             }
         }
         
+        // Links.json'u lokal olarak güncelle (test amacıyla)
+        function updateLocalLinksJson(links) {
+            try {
+                // Bu fonksiyon sadece modern tarayıcılarda çalışır
+                // Local serverda çalışırken linklerin kaydedilmesi için
+                const jsonString = JSON.stringify(links, null, 2);
+                
+                // Dosyayı indirme olarak kaydet (kullanıcıya sunmak için)
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'links.json';
+                a.style.display = 'none';
+                
+                // Sayfada link ekleyip tıklat
+                document.body.appendChild(a);
+                a.click();
+                
+                // Temizle
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('Local links.json güncellendi');
+            } catch (error) {
+                console.error('Local links.json güncellenemedi:', error);
+            }
+        }
+        
         // Yeni link ekleme işlemi
         document.getElementById('addLinkForm').addEventListener('submit', async function(e) {
             e.preventDefault();

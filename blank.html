@@ -237,7 +237,8 @@
                 
                 // 1. links.json dosyasından linkleri al
                 try {
-                    const response = await fetch('links.json');
+                    // Cache'i devre dışı bırakarak her seferinde güncel dosyayı al
+                    const response = await fetch('links.json', { cache: 'no-cache' });
                     const jsonLinks = await response.json();
                     allLinks = allLinks.concat(jsonLinks);
                 } catch (error) {
