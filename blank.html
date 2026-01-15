@@ -240,42 +240,15 @@
                     const jsonLinks = await response.json();
                     allLinks = allLinks.concat(jsonLinks);
                 } catch (error) {
-                    console.log('links.json dosyası bulunamadı, sadece localStorage linkleri yüklenecek.');
+                    console.log('links.json dosyası bulunamadı.');
                 }
                 
-                // 2. LocalStorage'dan admin panelinden eklenen linkleri al
-                try {
-                    const adminLinks = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
-                    allLinks = allLinks.concat(adminLinks);
-                } catch (error) {
-                    console.log('LocalStorage linkleri yüklenemedi.');
-                }
-                
-                // 3. Tekrarlayan linkleri kaldır
-                const uniqueLinks = removeDuplicateLinks(allLinks);
-                
-                // 4. Linkleri göster
-                displayLinks(uniqueLinks);
+                // 2. Linkleri göster
+                displayLinks(allLinks);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
                 document.getElementById('links-container').innerHTML = '<p style="text-align: center; color: #ff4444;">Linkler yüklenemedi. Lütfen sayfayı yenileyin.</p>';
             }
-        }
-        
-        // Tekrarlayan linkleri kaldırma fonksiyonu
-        function removeDuplicateLinks(links) {
-            const unique = [];
-            const seen = new Set();
-            
-            for (const link of links) {
-                const key = link.isim + '|' + link.link;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    unique.push(link);
-                }
-            }
-            
-            return unique;
         }
         
         function displayLinks(links) {

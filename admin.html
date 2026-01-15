@@ -553,17 +553,14 @@
         // Linkleri yükle
         async function loadLinks() {
             try {
-                let links = [];
+                const response = await fetch('upload.php?action=get');
+                const result = await response.json();
                 
-                // LocalStorage'dan linkleri al
-                try {
-                    links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
-                } catch (error) {
-                    console.log('LocalStorage linkleri yüklenemedi, boş liste kullanılıyor.');
-                    links = [];
+                if (result.success) {
+                    displayLinks(result.links);
+                } else {
+                    document.getElementById('linksList').innerHTML = '<p style="text-align: center; color: #ff4444;">Linkler yüklenemedi.</p>';
                 }
-                
-                displayLinks(links);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
                 document.getElementById('linksList').innerHTML = '<p style="text-align: center; color: #ff4444;">Linkler yüklenemedi.</p>';
@@ -587,87 +584,47 @@
                         <p style="font-size: 12px; color: #888; margin-top: 5px;">Foto: Var</p>
                     </div>
                     <div class="link-actions">
-                        <button class="edit-btn" onclick="openEditModal(${index}, '${link.isim}', '${link.link}', '${link.foto || ''}')">DÜZENLE</button>
+                        <button class="edit-btn" onclick="openEditModal(${index}, '${link.isim}', '${link.link}')">DÜZENLE</button>
                         <button class="delete-btn" onclick="deleteLink(${index})">SİL</button>
                     </div>
                 </div>
             `).join('');
         }
         
-        // Dosyayı base64'ye çevirme fonksiyonu
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = (error) => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
-        
         // Yeni link ekle
         document.getElementById('addLinkForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const isim = document.getElementById('linkName').value.trim();
-            const link = document.getElementById('linkUrl').value.trim();
-            const fileInput = document.getElementById('linkPhoto');
-            const file = fileInput.files[0];
-            
-            if (!isim || !link || !file) {
-                alert('Lütfen tüm alanları doldurun!');
-                return;
-            }
+            const formData = new FormData(this);
+            formData.append('action', 'add');
             
             try {
-                // Dosyayı base64'ye çevir
-                const fotoBase64 = await fileToBase64(file);
+                const response = await fetch('upload.php', {
+                    method: 'POST',
+                    body: formData
+                });
                 
-                let links = [];
+                const result = await response.json();
                 
-                // Önce localStorage'dan mevcut linkleri al
-                try {
-                    const adminLinks = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
-                    links = adminLinks;
-                } catch (error) {
-                    console.log('LocalStorage linkleri yüklenemedi, boş liste kullanılıyor.');
-                    links = [];
+                if (result.success) {
+                    // Formu temizle
+                    this.reset();
+                    
+                    // Linkleri yeniden yükle
+                    loadLinks();
+                    
+                    alert('Link başarıyla eklendi! Ana sayfada görüntülenebilir.');
+                } else {
+                    alert(result.message || 'Link eklenirken hata oluştu.');
                 }
-                
-                // Yeni linki ekle
-                links.push({ isim, link, foto: fotoBase64 });
-                
-                // Links.json dosyasını güncelle
-                await updateLinksFile(links);
-                
-                // Formu temizle
-                this.reset();
-                
-                // Linkleri yeniden yükle
-                loadLinks();
             } catch (error) {
                 console.error('Link eklenirken hata oluştu:', error);
                 alert('Link eklenirken hata oluştu.');
             }
         });
         
-        // Links.json dosyasını güncelle (yerel depolama ve uyarı)
-        async function updateLinksFile(links) {
-            try {
-                console.log('Links güncellendi:', links);
-                
-                // Tarayıcıda localStorage'a kaydet
-                localStorage.setItem('reushubAdminLinks', JSON.stringify(links));
-                
-                // Başarı mesajı
-                alert('Link başarıyla eklendi! Ana sayfada görüntülenebilir.');
-            } catch (error) {
-                console.error('Links dosyası güncellenirken hata oluştu:', error);
-                throw error;
-            }
-        }
-        
         // Edit modalını aç
-        function openEditModal(index, isim, link, foto) {
+        function openEditModal(index, isim, link) {
             document.getElementById('editLinkId').value = index;
             document.getElementById('editLinkName').value = isim;
             document.getElementById('editLinkUrl').value = link;
@@ -694,39 +651,30 @@
         editLinkForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const index = parseInt(document.getElementById('editLinkId').value);
-            const isim = document.getElementById('editLinkName').value.trim();
-            const link = document.getElementById('editLinkUrl').value.trim();
-            const fileInput = document.getElementById('editLinkPhoto');
-            const file = fileInput.files[0];
-            
-            if (!isim || !link) {
-                alert('Lütfen tüm alanları doldurun!');
-                return;
-            }
+            const index = document.getElementById('editLinkId').value;
+            const formData = new FormData(this);
+            formData.append('action', 'edit');
+            formData.append('index', index);
             
             try {
-                // Mevcut linkleri al
-                let links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                const response = await fetch('upload.php', {
+                    method: 'POST',
+                    body: formData
+                });
                 
-                let fotoBase64 = links[index].foto;
+                const result = await response.json();
                 
-                // Yeni dosya yüklendiyse base64'ye çevir
-                if (file) {
-                    fotoBase64 = await fileToBase64(file);
+                if (result.success) {
+                    // Modalı kapat
+                    closeEditModal();
+                    
+                    // Linkleri yeniden yükle
+                    loadLinks();
+                    
+                    alert('Link başarıyla güncellendi!');
+                } else {
+                    alert(result.message || 'Link düzenlenirken hata oluştu.');
                 }
-                
-                // Linki güncelle
-                links[index] = { isim, link, foto: fotoBase64 };
-                
-                // Links.json dosyasını güncelle
-                await updateLinksFile(links);
-                
-                // Modalı kapat
-                closeEditModal();
-                
-                // Linkleri yeniden yükle
-                loadLinks();
             } catch (error) {
                 console.error('Link düzenlenirken hata oluştu:', error);
                 alert('Link düzenlenirken hata oluştu.');
@@ -740,17 +688,17 @@
             }
             
             try {
-                // Mevcut linkleri al
-                let links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                const response = await fetch(`upload.php?action=delete&index=${index}`);
+                const result = await response.json();
                 
-                // Linki sil
-                links.splice(index, 1);
-                
-                // Links.json dosyasını güncelle
-                await updateLinksFile(links);
-                
-                // Linkleri yeniden yükle
-                loadLinks();
+                if (result.success) {
+                    // Linkleri yeniden yükle
+                    loadLinks();
+                    
+                    alert('Link başarıyla silindi!');
+                } else {
+                    alert(result.message || 'Link silinirken hata oluştu.');
+                }
             } catch (error) {
                 console.error('Link silinirken hata oluştu:', error);
                 alert('Link silinirken hata oluştu.');
