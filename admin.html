@@ -654,8 +654,19 @@
             
             const response = await fetch(url, options);
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'GitHub API hatası');
+                let errorMessage = 'GitHub API hatası';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    errorMessage = `${errorMessage}: ${response.statusText}`;
+                }
+                throw new Error(`${errorMessage} (Status: ${response.status})`);
+            }
+            
+            // İçerik boşsa boş nesne döndür
+            if (response.status === 204) {
+                return {};
             }
             
             return response.json();
@@ -711,6 +722,22 @@
         
         // Fotoğrafı GitHub'a yükle
         async function uploadPhotoToGithub(file) {
+            // Dosya doğrulaması
+            if (!file) {
+                throw new Error('Lütfen bir fotoğraf seçin!');
+            }
+            
+            // Dosya boyutunu kontrol et (max 10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                throw new Error('Fotoğraf boyutu 10MBı aşamaz!');
+            }
+            
+            // Dosya tipi kontrolü
+            if (!file.type.startsWith('image/')) {
+                throw new Error('Sadece resim dosyaları yüklenebilir!');
+            }
+            
             // Önce photos dizininin var olup olmadığını kontrol et
             try {
                 await githubApiRequest('contents/photos');
@@ -729,19 +756,39 @@
                 }
             }
             
-            const fileName = 'photos/' + Date.now() + '_' + file.name;
-            const base64Content = await fileToBase64(file);
+            // Güvenli dosya adı oluştur
+            const fileExtension = file.name.split('.').pop() || 'jpg';
+            const safeFileName = `photos/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExtension}`;
             
             try {
-                await githubApiRequest('contents/' + fileName, 'PUT', {
+                const base64Content = await fileToBase64(file);
+                
+                await githubApiRequest('contents/' + safeFileName, 'PUT', {
                     message: `Add photo: ${file.name}`,
                     content: base64Content,
                     branch: githubSettings.branch
                 });
                 
-                return fileName;
+                return safeFileName;
             } catch (error) {
-                throw new Error('Fotoğraf yüklenemedi: ' + error.message);
+                // Daha ayrıntılı hata mesajları
+                let errorMessage = 'Fotoğraf yüklenemedi: ';
+                
+                if (error.message.includes('Resource not accessible')) {
+                    errorMessage += 'GitHub tokenınızın yeterli izinleri yok! Lütfen tokenınızı kontrol edin.';
+                } else if (error.message.includes('invalid characters')) {
+                    errorMessage += 'Dosya adında geçersiz karakterler tespit edildi!';
+                } else if (error.message.includes('Not Found')) {
+                    errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
+                } else if (error.message.includes('401')) {
+                    errorMessage += 'GitHub tokenınız geçersiz! Lütfen tokenınızı kontrol edin.';
+                } else if (error.message.includes('403')) {
+                    errorMessage += 'GitHub API sınırına ulaşıldı! Lütfen daha sonra tekrar deneyin.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                throw new Error(errorMessage);
             }
         }
         
@@ -809,7 +856,7 @@
             }
         }
         
-        // Yeni link ekle
+        // Yeni link ekleme işlemi
         document.getElementById('addLinkForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -824,9 +871,23 @@
             }
             
             try {
-                // 1. Mevcut linkleri al
-                const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                const links = JSON.parse(atob(fileContent.content));
+                // 1. Mevcut linkleri al veya boş dizi oluştur
+                let links = [];
+                try {
+                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    links = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse boş dizi kullan
+                    if (!Array.isArray(links)) {
+                        links = [];
+                    }
+                } catch (getFileError) {
+                    // Dosya bulunamazsa boş dizi kullan
+                    if (getFileError.message.includes('Not Found')) {
+                        links = [];
+                    } else {
+                        throw getFileError;
+                    }
+                }
                 
                 // 2. Eğer fotoğraf yüklendiyse GitHub'a yükle
                 let fotoPath = '';
@@ -893,27 +954,46 @@
             }
             
             try {
-                // 1. Mevcut linkleri al
-                const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                const links = JSON.parse(atob(fileContent.content));
+                // 1. Mevcut linkleri al veya boş dizi oluştur
+                let links = [];
+                try {
+                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    links = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse boş dizi kullan
+                    if (!Array.isArray(links)) {
+                        links = [];
+                    }
+                } catch (getFileError) {
+                    // Dosya bulunamazsa boş dizi kullan
+                    if (getFileError.message.includes('Not Found')) {
+                        links = [];
+                    } else {
+                        throw getFileError;
+                    }
+                }
                 
-                let fotoPath = links[index].foto;
+                // 2. Index geçerli mi kontrol et
+                if (index < 0 || index >= links.length) {
+                    throw new Error('Geçersiz link indexi!');
+                }
                 
-                // 2. Eğer yeni fotoğraf yüklendiyse GitHub'a yükle
+                let fotoPath = links[index].foto || '';
+                
+                // 3. Eğer yeni fotoğraf yüklendiyse GitHub'a yükle
                 if (file) {
                     fotoPath = await uploadPhotoToGithub(file);
                 }
                 
-                // 3. Linki güncelle
+                // 4. Linki güncelle
                 links[index] = { isim, link, foto: fotoPath };
                 
-                // 4. Links.json'u güncelle
+                // 5. Links.json'u güncelle
                 await updateLinksJsonOnGithub(links);
                 
-                // 5. Modalı kapat
+                // 6. Modalı kapat
                 closeEditModal();
                 
-                // 6. Linkleri yeniden yükle
+                // 7. Linkleri yeniden yükle
                 loadLinks();
                 
                 alert('Link başarıyla güncellendi!');
