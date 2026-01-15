@@ -531,7 +531,23 @@
                 </form>
             </div>
             
-            <!-- Links Listesi -->
+            <!-- Yedekleme Bölümü -->
+            <div class="backup-section">
+                <h2>Veri Yedekleme</h2>
+                <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+                    <button type="button" onclick="backupLinksJson()" class="add-btn">
+                        📥 LINKS.JSON YEDekle
+                    </button>
+                    <button type="button" onclick="listAndBackupPhotos()" class="add-btn">
+                        📸 FOTOĞRAFLARI LİSTELE VE YEDekle
+                    </button>
+                </div>
+                <p style="color: #ffd700; font-size: 14px; margin: 10px 0;">
+                    ⚠️ Önemli: Her değişiklikten önce verilerinizi yedekleyin!
+                </p>
+            </div>
+
+        <!-- Links Listesi -->
             <div class="links-section">
                 <h2>Linkler Listesi</h2>
                 <div id="linksList" class="links-list">
@@ -857,32 +873,67 @@
             }
         }
         
-        // Links.json'u lokal olarak güncelle (test amacıyla)
-        function updateLocalLinksJson(links) {
+        // Links.json'u yedekle (kullanıcıya indirme olarak sunar)
+        function backupLinksJson() {
+            loadLinks().then(links => {
+                try {
+                    const jsonString = JSON.stringify(links, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `links_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                    a.style.display = 'none';
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    alert('Links.json yedeklendi!');
+                } catch (error) {
+                    console.error('Yedekleme başarısız:', error);
+                    alert('Yedekleme başarısız!');
+                }
+            });
+        }
+        
+        // Tüm fotoğrafları listele ve yedekle
+        async function listAndBackupPhotos() {
             try {
-                // Bu fonksiyon sadece modern tarayıcılarda çalışır
-                // Local serverda çalışırken linklerin kaydedilmesi için
-                const jsonString = JSON.stringify(links, null, 2);
+                const photos = await githubApiRequest('contents/photos');
+                const photoUrls = photos.filter(item => item.type === 'file').map(item => item.download_url);
                 
-                // Dosyayı indirme olarak kaydet (kullanıcıya sunmak için)
-                const blob = new Blob([jsonString], { type: 'application/json' });
+                if (photoUrls.length === 0) {
+                    alert('Hiç fotoğraf bulunamadı!');
+                    return;
+                }
+                
+                // Fotoğraf URL'lerini içeren bir dosya oluştur
+                const photoList = JSON.stringify({ 
+                    backupDate: new Date().toISOString(),
+                    photoCount: photoUrls.length,
+                    photos: photoUrls 
+                }, null, 2);
+                
+                const blob = new Blob([photoList], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'links.json';
+                a.download = `photos_backup_${new Date().toISOString().slice(0, 10)}.json`;
                 a.style.display = 'none';
                 
-                // Sayfada link ekleyip tıklat
                 document.body.appendChild(a);
                 a.click();
                 
-                // Temizle
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                console.log('Local links.json güncellendi');
+                alert(`Fotoğraf listesi yedeklendi! (${photoUrls.length} fotoğraf)`);
             } catch (error) {
-                console.error('Local links.json güncellenemedi:', error);
+                console.error('Fotoğraflar listelenemedi:', error);
+                alert('Fotoğraflar listelenemedi!');
             }
         }
         
@@ -901,19 +952,19 @@
             }
             
             try {
-                // 1. Mevcut linkleri al veya boş dizi oluştur
+                // 1. Mevcut linkleri al veya boş dizi oluştur (koruma katmanı)
                 let links = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    links = JSON.parse(atob(fileContent.content));
-                    // Eğer parse edilen veri dizi değilse boş dizi kullan
-                    if (!Array.isArray(links)) {
-                        links = [];
-                    }
+                    const parsedContent = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse veya boşsa boş dizi kullan
+                    links = Array.isArray(parsedContent) ? parsedContent : [];
+                    console.log('Mevcut linkler sayısı:', links.length);
                 } catch (getFileError) {
                     // Dosya bulunamazsa boş dizi kullan
                     if (getFileError.message.includes('Not Found')) {
                         links = [];
+                        console.log('Yeni links.json oluşturulacak');
                     } else {
                         throw getFileError;
                     }
@@ -925,10 +976,18 @@
                     fotoPath = await uploadPhotoToGithub(file);
                 }
                 
-                // 3. Yeni linki ekle (clickCount başlangıçta 0)
-                links.push({ isim, link, foto: fotoPath, clickCount: 0 });
+                // 3. Yeni linki ekle (güvenli yapı)
+                const newLink = {
+                    isim: isim,
+                    link: link,
+                    foto: fotoPath || '',
+                    clickCount: 0,
+                    createdAt: new Date().toISOString()
+                };
                 
-                // 4. Links.json'u güncelle
+                links.push(newLink);
+                
+                // 4. Links.json'u güncelle (güvenli yazma)
                 await updateLinksJsonOnGithub(links);
                 
                 // 5. Formu temizle
@@ -1040,7 +1099,9 @@
         
         // Link sil
         async function deleteLink(index) {
-            if (!confirm('Bu linki silmek istediğinizden emin misiniz?')) {
+            // Güçlü onay sistemi
+            const linkName = document.querySelectorAll('.link-info h3')[index]?.textContent || 'Bu link';
+            if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!\nLinkle ilişkili fotoğraf GitHub'da kalacaktır.`)) {
                 return;
             }
             
@@ -1050,7 +1111,7 @@
                 const links = JSON.parse(atob(fileContent.content));
                 
                 // 2. Linki sil
-                links.splice(index, 1);
+                const deletedLink = links.splice(index, 1)[0];
                 
                 // 3. Links.json'u güncelle
                 await updateLinksJsonOnGithub(links);
@@ -1058,7 +1119,9 @@
                 // 4. Linkleri yeniden yükle
                 loadLinks();
                 
-                alert('Link başarıyla silindi!');
+                // 5. Silme işlemi sonrası bilgi
+                console.log('Silinen link:', deletedLink);
+                alert(`${linkName} başarıyla silindi!`);
             } catch (error) {
                 console.error('Link silinirken hata oluştu:', error);
                 alert('Link silinirken hata oluştu: ' + error.message);

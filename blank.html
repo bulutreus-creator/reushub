@@ -235,17 +235,33 @@
             try {
                 let allLinks = [];
                 
-                // 1. links.json dosyasından linkleri al
+                // 1. links.json dosyasından linkleri al (koruma katmanı)
                 try {
                     // Cache'i devre dışı bırakarak her seferinde güncel dosyayı al
                     const response = await fetch('links.json', { cache: 'no-cache' });
-                    const jsonLinks = await response.json();
-                    allLinks = allLinks.concat(jsonLinks);
+                    
+                    // Yanıt durumunu kontrol et
+                    if (!response.ok) {
+                        console.log('links.json dosyası bulunamadı veya erişilemedi.');
+                    } else {
+                        // JSON parse edilirken hata olursa yakala
+                        try {
+                            const jsonLinks = await response.json();
+                            // Eğer dizi değilse boş dizi kullan
+                            if (Array.isArray(jsonLinks)) {
+                                allLinks = allLinks.concat(jsonLinks);
+                            } else {
+                                console.log('links.json geçerli bir dizi değil.');
+                            }
+                        } catch (parseError) {
+                            console.error('links.json parse edilemedi:', parseError);
+                        }
+                    }
                 } catch (error) {
                     console.log('links.json dosyası bulunamadı.');
                 }
                 
-                // 2. Linkleri göster
+                // 2. Linkleri göster (güvenli yapı)
                 displayLinks(allLinks);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
@@ -261,7 +277,14 @@
                 return;
             }
             
-            container.innerHTML = links.map(link => `
+            container.innerHTML = links.map(link => {
+                // Link nesnesinin geçerli olup olmadığını kontrol et
+                if (!link || !link.isim || !link.link) {
+                    console.log('Geçersiz link:', link);
+                    return ''; // Geçersiz linki atla
+                }
+                
+                return `
                 <div class="link-card">
                     ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
@@ -273,7 +296,8 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
     </script>
 </body>
