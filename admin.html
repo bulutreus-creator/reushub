@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reushub - Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(255, 140, 0, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 140, 0, 0.15) 0%, transparent 50%);
+            animation: backgroundShift 8s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes backgroundShift {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                transform: translate(10px, 10px) scale(1.1);
+            }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Admin Giriş */
+        .admin-login {
+            max-width: 400px;
+            margin: 100px auto;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .admin-login h1 {
+            font-size: 32px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffd700 50%, #ffed4e 75%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: goldShimmer 3s ease-in-out infinite;
+            margin-bottom: 30px;
+        }
+        
+        @keyframes goldShimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .admin-login .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .admin-login label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #cccccc;
+        }
+        
+        .admin-login input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-login input:focus {
+            outline: none;
+            border-color: rgba(255, 140, 0, 0.6);
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+        }
+        
+        .admin-login .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .admin-login .login-btn:hover {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+        
+        .admin-login .error-message {
+            color: #ff4444;
+            margin-top: 15px;
+            font-weight: 500;
+        }
+        
+        /* Admin Panel */
+        .admin-panel {
+            display: block;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 140, 0, 0.2);
+        }
+        
+        .panel-header h1 {
+            font-size: 32px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffd700 50%, #ffed4e 75%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: goldShimmer 3s ease-in-out infinite;
+        }
+        
+        .logout-btn {
+            padding: 10px 20px;
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: rgba(255, 68, 68, 0.5);
+        }
+        
+        /* Link Ekle Bölümü */
+        .add-link-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .add-link-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        
+        .add-link-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #cccccc;
+        }
+        
+        .form-group input {
+            padding: 12px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(255, 140, 0, 0.6);
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+        }
+        
+        .add-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .add-btn:hover {
+            background: linear-gradient(135deg, #45a049 0%, #4caf50 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        /* Links Listesi */
+        .links-section {
+            margin-bottom: 40px;
+        }
+        
+        .links-section h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        
+        .links-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .link-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .link-item:hover {
+            border-color: rgba(255, 140, 0, 0.5);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.15);
+        }
+        
+        .link-info {
+            flex: 1;
+        }
+        
+        .link-info h3 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .link-info p {
+            margin: 0;
+            color: #cccccc;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .link-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .edit-btn, .delete-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 12px;
+        }
+        
+        .edit-btn {
+            background: linear-gradient(135deg, #2196f3 0%, #0b7dda 100%);
+            color: #ffffff;
+        }
+        
+        .edit-btn:hover {
+            background: linear-gradient(135deg, #0b7dda 0%, #2196f3 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(33, 150, 243, 0.3);
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: #ffffff;
+        }
+        
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(244, 67, 54, 0.3);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #cccccc;
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: #ffffff;
+        }
+        
+        .modal-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .modal-form .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        
+        .save-btn, .cancel-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .save-btn {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: #ffffff;
+        }
+        
+        .save-btn:hover {
+            background: linear-gradient(135deg, #45a049 0%, #4caf50 100%);
+        }
+        
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #cccccc;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .add-link-form {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .admin-login {
+                margin: 50px auto;
+                padding: 30px;
+            }
+            
+            .admin-login h1 {
+                font-size: 24px;
+            }
+            
+            .panel-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .link-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .link-actions {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="admin-panel">
+            <div class="panel-header">
+                <h1>Reushub - Admin Panel</h1>
+            </div>
+            
+            <!-- Link Ekle Bölümü -->
+            <div class="add-link-section">
+                <h2>Yeni Link Ekle</h2>
+                <form id="addLinkForm" class="add-link-form">
+                    <div class="form-group">
+                        <label for="linkName">İsim</label>
+                        <input type="text" id="linkName" name="linkName" placeholder="İsim girin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="linkUrl">Link</label>
+                        <input type="url" id="linkUrl" name="linkUrl" placeholder="https://example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="linkPhoto">Fotoğraf Yükle</label>
+                        <input type="file" id="linkPhoto" name="linkPhoto" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="add-btn">EKLE</button>
+                </form>
+            </div>
+            
+            <!-- Links Listesi -->
+            <div class="links-section">
+                <h2>Linkler Listesi</h2>
+                <div id="linksList" class="links-list">
+                    <!-- Linkler buraya dinamik olarak eklenecek -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Link Düzenle</h3>
+                    <button id="closeModal" class="close-btn">&times;</button>
+                </div>
+                <form id="editLinkForm" class="modal-form">
+                    <input type="hidden" id="editLinkId">
+                    <div class="form-group">
+                        <label for="editLinkName">İsim</label>
+                        <input type="text" id="editLinkName" name="editLinkName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLinkUrl">Link</label>
+                        <input type="url" id="editLinkUrl" name="editLinkUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLinkPhoto">Fotoğraf Yükle</label>
+                        <input type="file" id="editLinkPhoto" name="editLinkPhoto" accept="image/*">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancelEditBtn" class="cancel-btn">İPTAL</button>
+                        <button type="submit" class="save-btn">KAYDET</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Modal elementleri
+        const editModal = document.getElementById('editModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const editLinkForm = document.getElementById('editLinkForm');
+        
+        // Sayfa yüklendiğinde linkleri yükle
+        window.addEventListener('DOMContentLoaded', function() {
+            loadLinks();
+        });
+        
+        // Linkleri yükle
+        async function loadLinks() {
+            try {
+                let links = [];
+                
+                // LocalStorage'dan linkleri al
+                try {
+                    links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                } catch (error) {
+                    console.log('LocalStorage linkleri yüklenemedi, boş liste kullanılıyor.');
+                    links = [];
+                }
+                
+                displayLinks(links);
+            } catch (error) {
+                console.error('Linkler yüklenirken hata oluştu:', error);
+                document.getElementById('linksList').innerHTML = '<p style="text-align: center; color: #ff4444;">Linkler yüklenemedi.</p>';
+            }
+        }
+        
+        // Linkleri göster
+        function displayLinks(links) {
+            const linksList = document.getElementById('linksList');
+            
+            if (links.length === 0) {
+                linksList.innerHTML = '<p style="text-align: center; color: #cccccc;">Henüz hiç link eklenmemiş.</p>';
+                return;
+            }
+            
+            linksList.innerHTML = links.map((link, index) => `
+                <div class="link-item">
+                    <div class="link-info">
+                        <h3>${link.isim}</h3>
+                        <p>${link.link}</p>
+                        <p style="font-size: 12px; color: #888; margin-top: 5px;">Foto: Var</p>
+                    </div>
+                    <div class="link-actions">
+                        <button class="edit-btn" onclick="openEditModal(${index}, '${link.isim}', '${link.link}', '${link.foto || ''}')">DÜZENLE</button>
+                        <button class="delete-btn" onclick="deleteLink(${index})">SİL</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Dosyayı base64'ye çevirme fonksiyonu
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Yeni link ekle
+        document.getElementById('addLinkForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const isim = document.getElementById('linkName').value.trim();
+            const link = document.getElementById('linkUrl').value.trim();
+            const fileInput = document.getElementById('linkPhoto');
+            const file = fileInput.files[0];
+            
+            if (!isim || !link || !file) {
+                alert('Lütfen tüm alanları doldurun!');
+                return;
+            }
+            
+            try {
+                // Dosyayı base64'ye çevir
+                const fotoBase64 = await fileToBase64(file);
+                
+                let links = [];
+                
+                // Önce localStorage'dan mevcut linkleri al
+                try {
+                    const adminLinks = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                    links = adminLinks;
+                } catch (error) {
+                    console.log('LocalStorage linkleri yüklenemedi, boş liste kullanılıyor.');
+                    links = [];
+                }
+                
+                // Yeni linki ekle
+                links.push({ isim, link, foto: fotoBase64 });
+                
+                // Links.json dosyasını güncelle
+                await updateLinksFile(links);
+                
+                // Formu temizle
+                this.reset();
+                
+                // Linkleri yeniden yükle
+                loadLinks();
+            } catch (error) {
+                console.error('Link eklenirken hata oluştu:', error);
+                alert('Link eklenirken hata oluştu.');
+            }
+        });
+        
+        // Links.json dosyasını güncelle (yerel depolama ve uyarı)
+        async function updateLinksFile(links) {
+            try {
+                console.log('Links güncellendi:', links);
+                
+                // Tarayıcıda localStorage'a kaydet
+                localStorage.setItem('reushubAdminLinks', JSON.stringify(links));
+                
+                // Başarı mesajı
+                alert('Link başarıyla eklendi! Ana sayfada görüntülenebilir.');
+            } catch (error) {
+                console.error('Links dosyası güncellenirken hata oluştu:', error);
+                throw error;
+            }
+        }
+        
+        // Edit modalını aç
+        function openEditModal(index, isim, link, foto) {
+            document.getElementById('editLinkId').value = index;
+            document.getElementById('editLinkName').value = isim;
+            document.getElementById('editLinkUrl').value = link;
+            // Fotoğraf inputu temizle
+            document.getElementById('editLinkPhoto').value = '';
+            editModal.classList.add('show');
+        }
+        
+        // Modalı kapat
+        closeModal.addEventListener('click', closeEditModal);
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', function(e) {
+            if (e.target === editModal) {
+                closeEditModal();
+            }
+        });
+        
+        function closeEditModal() {
+            editModal.classList.remove('show');
+            editLinkForm.reset();
+        }
+        
+        // Link düzenle
+        editLinkForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const index = parseInt(document.getElementById('editLinkId').value);
+            const isim = document.getElementById('editLinkName').value.trim();
+            const link = document.getElementById('editLinkUrl').value.trim();
+            const fileInput = document.getElementById('editLinkPhoto');
+            const file = fileInput.files[0];
+            
+            if (!isim || !link) {
+                alert('Lütfen tüm alanları doldurun!');
+                return;
+            }
+            
+            try {
+                // Mevcut linkleri al
+                let links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                
+                let fotoBase64 = links[index].foto;
+                
+                // Yeni dosya yüklendiyse base64'ye çevir
+                if (file) {
+                    fotoBase64 = await fileToBase64(file);
+                }
+                
+                // Linki güncelle
+                links[index] = { isim, link, foto: fotoBase64 };
+                
+                // Links.json dosyasını güncelle
+                await updateLinksFile(links);
+                
+                // Modalı kapat
+                closeEditModal();
+                
+                // Linkleri yeniden yükle
+                loadLinks();
+            } catch (error) {
+                console.error('Link düzenlenirken hata oluştu:', error);
+                alert('Link düzenlenirken hata oluştu.');
+            }
+        });
+        
+        // Link sil
+        async function deleteLink(index) {
+            if (!confirm('Bu linki silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            try {
+                // Mevcut linkleri al
+                let links = JSON.parse(localStorage.getItem('reushubAdminLinks') || '[]');
+                
+                // Linki sil
+                links.splice(index, 1);
+                
+                // Links.json dosyasını güncelle
+                await updateLinksFile(links);
+                
+                // Linkleri yeniden yükle
+                loadLinks();
+            } catch (error) {
+                console.error('Link silinirken hata oluştu:', error);
+                alert('Link silinirken hata oluştu.');
+            }
+        }
+    </script>
+</body>
+</html>

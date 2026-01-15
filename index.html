@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pornhub Giriş Sayfası">
+    <meta name="keywords" content="pornhub, giriş, erotik, platform">
+    <meta name="author" content="Pornhub">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Reushub - Giriş</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="logo">
+                <h1>Reushub</h1>
+            </div>
+            <h2>Hoş geldiniz gençler</h2>
+            <p class="subtitle">Tüm Ünlü İfşalarına Giriş Yaparak Ulaşabilirsiniz</p>
+            <form action="#" method="post">
+                <div class="input-group">
+                    <label for="password">Giriş Kodu = barışreus</label>
+                    <input type="password" id="password" name="password" placeholder="barışreus" required>
+                </div>
+                <div id="error-message" class="error-message"></div>
+                <div class="options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember"> Beni Hatırla
+                    </label>
+                </div>
+                <button type="submit" class="login-btn">GİRİŞ YAP</button>
+                <div class="warning">
+                    <p>18 yaşından küçükler için erişim yasaktır. Yetkisiz erişim suçtur.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Form gönderimini dinle
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Formun normal gönderimini engelle
+            
+            // Hata mesajını temizle
+            document.getElementById('error-message').textContent = '';
+            
+            // Şifreyi al
+            const password = document.getElementById('password').value.toLowerCase();
+            
+            // Şifre kontrolü
+            if (password === 'barışreus') {
+                // Ana sayfaya yönlendir
+                window.location.href = 'blank.html';
+            } else if (password === 'bulutreus') {
+                // Admin paneline yönlendir
+                window.location.href = 'admin.html';
+            } else {
+                // Yanlış şifre - ekranda göster
+                document.getElementById('error-message').textContent = 'Şifre yanlış!';
+            }
+        });
+    </script>
+</body>
+</html>
