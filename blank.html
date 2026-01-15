@@ -215,6 +215,14 @@
             </div>
             <p>Bu sitede yer alan bağlantılar üçüncü taraf içeriklere yönlendirme amaçlıdır.
 İçeriklerin doğruluğu veya hukuki sorumluluğu tarafımıza ait değildir.</p>
+            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
+                <div style="background: rgba(255, 215, 0, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                    <span style="color: #ffd700; font-weight: 500;">👥 Anlık Kullanıcılar: <span id="onlineUsers">0</span></span>
+                </div>
+                <div style="background: rgba(255, 105, 180, 0.1); padding: 10px 20px; border-radius: 20px; border: 1px solid rgba(255, 105, 180, 0.3);">
+                    <span style="color: #ff69b4; font-weight: 500;">🔥 Toplam Ziyaret: <span id="totalVisits">0</span></span>
+                </div>
+            </div>
         </div>
         
         <div class="links-section">
@@ -226,8 +234,32 @@
     </div>
     
     <script>
-        // Sayfa yüklendiğinde linkleri yükle
+        // Toplam ziyaret sayısını güncelle
+        function updateTotalVisits() {
+            const totalVisits = parseInt(localStorage.getItem('totalVisits')) || 0;
+            const newTotal = totalVisits + 1;
+            localStorage.setItem('totalVisits', newTotal.toString());
+            document.getElementById('totalVisits').textContent = newTotal;
+        }
+
+        // Simüle edilmiş anlık kullanıcı sayısını güncelle
+        function updateOnlineUsers() {
+            // Gerçek zamanlı olmayan, simüle edilmiş bir değer
+            // 10-50 arasında rastgele bir değer oluştur
+            const minUsers = 10;
+            const maxUsers = 50;
+            const onlineUsers = Math.floor(Math.random() * (maxUsers - minUsers + 1)) + minUsers;
+            document.getElementById('onlineUsers').textContent = onlineUsers;
+        }
+
+        // Sayfa yüklendiğinde linkleri yükle ve ziyaret bilgilerini güncelle
         document.addEventListener('DOMContentLoaded', function() {
+            updateTotalVisits();
+            updateOnlineUsers();
+            
+            // Her 10 saniyede bir anlık kullanıcı sayısını güncelle
+            setInterval(updateOnlineUsers, 10000);
+            
             fetchLinks();
         });
         
@@ -252,6 +284,29 @@
             }
         }
         
+        // Tıklanma sayılarını localStorage'dan al
+        function getClickCounts() {
+            const counts = localStorage.getItem('linkClickCounts');
+            return counts ? JSON.parse(counts) : {};
+        }
+
+        // Tıklanma sayısını güncelle
+        function updateClickCount(linkUrl) {
+            const counts = getClickCounts();
+            counts[linkUrl] = (counts[linkUrl] || 0) + 1;
+            localStorage.setItem('linkClickCounts', JSON.stringify(counts));
+        }
+
+        // Tıklanma sayısına göre sırala
+        function sortLinksByClicks(links) {
+            const clickCounts = getClickCounts();
+            
+            return [...links].map(link => ({
+                ...link,
+                clickCount: clickCounts[link.link] || 0
+            })).sort((a, b) => b.clickCount - a.clickCount);
+        }
+
         // Fisher-Yates karıştırma algoritması
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -262,6 +317,12 @@
             return shuffled;
         }
 
+        // Tıklama takibi yap ve yönlendir
+        function trackAndRedirect(url) {
+            updateClickCount(url);
+            window.open(url, '_blank');
+        }
+
         function displayLinks(links) {
             const container = document.getElementById('links-container');
             
@@ -270,22 +331,31 @@
                 return;
             }
             
-            // Linkleri rastgele karıştır
-            const shuffledLinks = shuffleArray(links);
+            // Linkleri tıklanma sayısına göre sırala
+            const sortedLinks = sortLinksByClicks(links);
             
-            container.innerHTML = shuffledLinks.map(link => `
+            // Tıklanma sayılarını al
+            const clickCounts = getClickCounts();
+            
+            container.innerHTML = sortedLinks.map(link => {
+                const clickCount = clickCounts[link.link] || 0;
+                return `
                 <div class="link-card">
                     ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
+                        <p style="color: #ffd700; font-size: 14px; margin: 10px 0; font-weight: 500;">
+                            🔥 ${clickCount} Kişi Bu İçeriğe Girdi
+                        </p>
                         <div class="link-btn-container">
-                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer">
+                            <a href="#" onclick="trackAndRedirect('${link.link}')" class="link-btn" rel="noopener noreferrer">
                                 İÇERİĞE GİT
                             </a>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
     </script>
 </body>
