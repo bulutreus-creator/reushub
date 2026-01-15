@@ -711,6 +711,24 @@
         
         // Fotoğrafı GitHub'a yükle
         async function uploadPhotoToGithub(file) {
+            // Önce photos dizininin var olup olmadığını kontrol et
+            try {
+                await githubApiRequest('contents/photos');
+            } catch (error) {
+                // Dizin yoksa, boş dosya oluşturarak dizini oluştur
+                if (error.message.includes('Not Found')) {
+                    try {
+                        await githubApiRequest('contents/photos/.gitkeep', 'PUT', {
+                            message: 'Create photos directory',
+                            content: '',
+                            branch: githubSettings.branch
+                        });
+                    } catch (dirError) {
+                        throw new Error('Photos dizini oluşturulamadı: ' + dirError.message);
+                    }
+                }
+            }
+            
             const fileName = 'photos/' + Date.now() + '_' + file.name;
             const base64Content = await fileToBase64(file);
             
@@ -730,28 +748,50 @@
         // Links.json'u GitHub'a güncelle
         async function updateLinksJsonOnGithub(links) {
             try {
-                // Mevcut dosyanın SHA'sını al
-                const fileInfo = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                let sha = '';
+                let fileExists = true;
                 
-                await githubApiRequest('contents/links.json', 'PUT', {
-                    message: 'Update links',
+                // Mevcut dosyanın SHA'sını almayı dene
+                try {
+                    const fileInfo = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    sha = fileInfo.sha;
+                } catch (getFileError) {
+                    if (getFileError.message.includes('Not Found')) {
+                        fileExists = false;
+                    } else {
+                        throw new Error('Dosya bilgisi alınamadı: ' + getFileError.message);
+                    }
+                }
+                
+                const requestBody = {
+                    message: fileExists ? 'Update links' : 'Create links.json',
                     content: btoa(JSON.stringify(links, null, 2)),
-                    branch: githubSettings.branch,
-                    sha: fileInfo.sha
-                });
+                    branch: githubSettings.branch
+                };
+                
+                // Eğer dosya varsa SHA ekle
+                if (fileExists) {
+                    requestBody.sha = sha;
+                }
+                
+                await githubApiRequest('contents/links.json', 'PUT', requestBody);
                 
                 return true;
             } catch (error) {
-                // Eğer dosya yoksa, yeni bir dosya oluştur
-                if (error.message.includes('Not Found')) {
-                    await githubApiRequest('contents/links.json', 'PUT', {
-                        message: 'Create links.json',
-                        content: btoa(JSON.stringify(links, null, 2)),
-                        branch: githubSettings.branch
-                    });
-                    return true;
+                // Daha ayrıntılı hata mesajları
+                let errorMessage = 'Links güncellenemedi: ';
+                
+                if (error.message.includes('Resource not accessible')) {
+                    errorMessage += 'GitHub tokenınızın yeterli izinleri yok! Lütfen tokenınızı kontrol edin.';
+                } else if (error.message.includes('SHA not valid')) {
+                    errorMessage += 'Dosya güncellenmiş olabilir. Lütfen sayfayı yenileyin ve tekrar deneyin.';
+                } else if (error.message.includes('Not Found')) {
+                    errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
+                } else {
+                    errorMessage += error.message;
                 }
-                throw new Error('Links güncellenemedi: ' + error.message);
+                
+                throw new Error(errorMessage);
             }
         }
         
