@@ -512,8 +512,8 @@
                         <input type="url" id="linkUrl" name="linkUrl" placeholder="https://example.com" required>
                     </div>
                     <div class="form-group">
-                        <label for="linkPhoto">Fotoğraf Yükle</label>
-                        <input type="file" id="linkPhoto" name="linkPhoto" accept="image/*" required>
+                        <label for="linkPhoto">Fotoğraf Yükle (Opsiyonel)</label>
+                        <input type="file" id="linkPhoto" name="linkPhoto" accept="image/*">
                     </div>
                     <button type="submit" class="add-btn">EKLE</button>
                 </form>
@@ -733,8 +733,8 @@
             const fileInput = document.getElementById('linkPhoto');
             const file = fileInput.files[0];
             
-            if (!isim || !link || !file) {
-                alert('Lütfen tüm alanları doldurun!');
+            if (!isim || !link) {
+                alert('İsim ve link alanları zorunludur!');
                 return;
             }
             
@@ -743,8 +743,11 @@
                 const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
                 const links = JSON.parse(atob(fileContent.content));
                 
-                // 2. Fotoğrafı GitHub'a yükle
-                const fotoPath = await uploadPhotoToGithub(file);
+                // 2. Eğer fotoğraf yüklendiyse GitHub'a yükle
+                let fotoPath = '';
+                if (file) {
+                    fotoPath = await uploadPhotoToGithub(file);
+                }
                 
                 // 3. Yeni linki ekle
                 links.push({ isim, link, foto: fotoPath });

@@ -247,7 +247,7 @@
                 displayLinks(allLinks);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
-                document.getElementById('links-container').innerHTML = '<p style="text-align: center; color: #ff4444;">Linkler yüklenemedi. Lütfen sayfayı yenileyin.</p>';
+                document.getElementById('links-container').innerHTML = '';
             }
         }
         
@@ -255,13 +255,13 @@
             const container = document.getElementById('links-container');
             
             if (links.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #cccccc;">Henüz hiç içerik eklenmemiş.</p>';
+                container.innerHTML = '';
                 return;
             }
             
             container.innerHTML = links.map(link => `
                 <div class="link-card">
-                    <img src="${link.foto || 'https://picsum.photos/300/200'}" alt="${link.isim}" class="link-card-image">
+                    ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">
