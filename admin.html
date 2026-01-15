@@ -896,8 +896,8 @@
                     fotoPath = await uploadPhotoToGithub(file);
                 }
                 
-                // 3. Yeni linki ekle
-                links.push({ isim, link, foto: fotoPath });
+                // 3. Yeni linki ekle (clickCount başlangıçta 0)
+                links.push({ isim, link, foto: fotoPath, clickCount: 0 });
                 
                 // 4. Links.json'u güncelle
                 await updateLinksJsonOnGithub(links);
@@ -985,8 +985,13 @@
                     fotoPath = await uploadPhotoToGithub(file);
                 }
                 
-                // 4. Linki güncelle
-                links[index] = { isim, link, foto: fotoPath };
+                // 4. Linki güncelle (clickCount korunur)
+                links[index] = { 
+                    isim, 
+                    link, 
+                    foto: fotoPath, 
+                    clickCount: links[index].clickCount || 0 
+                };
                 
                 // 5. Links.json'u güncelle
                 await updateLinksJsonOnGithub(links);

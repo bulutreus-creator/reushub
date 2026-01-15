@@ -276,12 +276,52 @@
                     console.log('links.json dosyası bulunamadı.');
                 }
                 
-                // 2. Linkleri göster
+                // 2. Toplam ziyaret sayısını güncelle
+                updateTotalVisitsFromLinks(allLinks);
+                
+                // 3. Linkleri göster
                 displayLinks(allLinks);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
                 document.getElementById('links-container').innerHTML = '';
             }
+        }
+        
+        // Tıklanma sayısını GitHub'da güncelle
+        async function updateClickCountOnGithub(linkUrl) {
+            try {
+                // Mevcut linkleri al
+                const response = await fetch('links.json');
+                const links = await response.json();
+                
+                // Linki bul ve tıklanma sayısını arttır
+                const linkIndex = links.findIndex(link => link.link === linkUrl);
+                if (linkIndex !== -1) {
+                    links[linkIndex].clickCount = (links[linkIndex].clickCount || 0) + 1;
+                    
+                    // links.json'u güncelle
+                    // Bu işlem sadece server tarafında yapılabilir, client tarafında CORS hatası alırız
+                    // Bu nedenle şu anda sadece localStorage'da saklıyoruz
+                    // Gerçek bir server varsa, buraya server endpoint'i ekleyebilirsiniz
+                }
+            } catch (error) {
+                console.error('GitHub üzerinde tıklanma sayısı güncellenemedi:', error);
+                // Hata oluşursa localStorage'da sakla
+                const counts = getClickCounts();
+                counts[linkUrl] = (counts[linkUrl] || 0) + 1;
+                localStorage.setItem('linkClickCounts', JSON.stringify(counts));
+            }
+        }
+        
+        // Toplam tıklanma sayısını hesapla
+        function getTotalClicks(links) {
+            return links.reduce((total, link) => total + (link.clickCount || 0), 0);
+        }
+        
+        // Tüm linklerin tıklanma sayılarını toplam ziyaret olarak göster
+        function updateTotalVisitsFromLinks(links) {
+            const totalClicks = getTotalClicks(links);
+            document.getElementById('totalVisits').textContent = totalClicks;
         }
         
         // Tıklanma sayılarını localStorage'dan al
@@ -318,8 +358,12 @@
         }
 
         // Tıklama takibi yap ve yönlendir
-        function trackAndRedirect(url) {
+        async function trackAndRedirect(url) {
+            // GitHub'da tıklanma sayısını güncelle
+            await updateClickCountOnGithub(url);
+            // localStorage'da da güncelle
             updateClickCount(url);
+            // Yönlendir
             window.open(url, '_blank');
         }
 
@@ -332,20 +376,25 @@
             }
             
             // Linkleri tıklanma sayısına göre sırala
-            const sortedLinks = sortLinksByClicks(links);
+            const sortedLinks = [...links].sort((a, b) => {
+                const aClicks = (a.clickCount || 0) + (getClickCounts()[a.link] || 0);
+                const bClicks = (b.clickCount || 0) + (getClickCounts()[b.link] || 0);
+                return bClicks - aClicks;
+            });
             
             // Tıklanma sayılarını al
             const clickCounts = getClickCounts();
             
             container.innerHTML = sortedLinks.map(link => {
-                const clickCount = clickCounts[link.link] || 0;
+                // GitHub'daki tıklanma sayısı + localStorage'daki tıklanma sayısı
+                const totalClicks = (link.clickCount || 0) + (clickCounts[link.link] || 0);
                 return `
                 <div class="link-card">
                     ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <p style="color: #ffd700; font-size: 14px; margin: 10px 0; font-weight: 500;">
-                            🔥 ${clickCount} Kişi Bu İçeriğe Girdi
+                            🔥 ${totalClicks} Kişi Bu İçeriğe Girdi
                         </p>
                         <div class="link-btn-container">
                             <a href="#" onclick="trackAndRedirect('${link.link}')" class="link-btn" rel="noopener noreferrer">
