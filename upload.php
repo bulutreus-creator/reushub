@@ -39,8 +39,8 @@ switch ($action) {
 function handleAddLink() {
     global $linksFile, $photosDir;
     
-    $name = $_POST['name'] ?? '';
-    $url = $_POST['url'] ?? '';
+    $name = $_POST['linkName'] ?? '';
+    $url = $_POST['linkUrl'] ?? '';
     
     if (empty($name) || empty($url)) {
         echo json_encode(['success' => false, 'message' => 'İsim ve link alanları zorunludur']);
@@ -48,12 +48,12 @@ function handleAddLink() {
     }
     
     // Fotoğraf yükleme
-    if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+    if (!isset($_FILES['linkPhoto']) || $_FILES['linkPhoto']['error'] !== UPLOAD_ERR_OK) {
         echo json_encode(['success' => false, 'message' => 'Fotoğraf yüklenemedi']);
         return;
     }
     
-    $file = $_FILES['photo'];
+    $file = $_FILES['linkPhoto'];
     $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     
@@ -93,8 +93,8 @@ function handleEditLink() {
     global $linksFile, $photosDir;
     
     $index = intval($_POST['index'] ?? -1);
-    $name = $_POST['name'] ?? '';
-    $url = $_POST['url'] ?? '';
+    $name = $_POST['editLinkName'] ?? '';
+    $url = $_POST['editLinkUrl'] ?? '';
     
     if ($index < 0 || empty($name) || empty($url)) {
         echo json_encode(['success' => false, 'message' => 'Geçersiz parametreler']);
@@ -113,8 +113,8 @@ function handleEditLink() {
     $currentPhoto = $links[$index]['foto'];
     
     // Eğer yeni fotoğraf yüklendiyseniz
-    if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES['photo'];
+    if (isset($_FILES['editLinkPhoto']) && $_FILES['editLinkPhoto']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['editLinkPhoto'];
         $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         
