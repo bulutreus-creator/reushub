@@ -284,9 +284,12 @@
                     return ''; // Geçersiz linki atla
                 }
                 
+                // Türkçe karakterleri içeren fotoğraf yollarını URL encode et
+                const encodedFotoUrl = link.foto ? encodeURI(link.foto) : '';
+                
                 return `
                 <div class="link-card">
-                    ${link.foto ? `<img src="${link.foto}" alt="${link.isim}" class="link-card-image">` : ''}
+                    ${link.foto ? `<img src="${encodedFotoUrl}" alt="${link.isim}" class="link-card-image">` : ''}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">
