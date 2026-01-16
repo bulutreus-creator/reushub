@@ -593,6 +593,9 @@
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const editLinkForm = document.getElementById('editLinkForm');
         
+        // Global links array
+        let links = [];
+        
         // Admin şifre kontrolü
         function checkAdminPassword() {
             const password = document.getElementById('adminPassword').value;
@@ -694,7 +697,7 @@
             try {
                 // GitHub'dan links.json dosyasını al
                 const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                const links = JSON.parse(atob(fileContent.content));
+                links = JSON.parse(atob(fileContent.content));
                 
                 displayLinks(links);
             } catch (error) {
@@ -712,19 +715,26 @@
                 return;
             }
             
-            linksList.innerHTML = links.map((link, index) => `
+            linksList.innerHTML = links.map((link, index) => {
+                // Link özelliklerini güvenli bir şekilde al
+                const isim = link.isim;
+                const linkUrl = link.link;
+                const foto = link.foto || '';
+                
+                return `
                 <div class="link-item">
                     <div class="link-info">
-                        <h3>${link.isim}</h3>
-                        <p>${link.link}</p>
-                        <p style="font-size: 12px; color: #888; margin-top: 5px;">Foto: ${link.foto ? 'Var' : 'Yok'}</p>
+                        <h3>${isim}</h3>
+                        <p>${linkUrl}</p>
+                        <p style="font-size: 12px; color: #888; margin-top: 5px;">Foto: ${foto ? 'Var' : 'Yok'}</p>
                     </div>
                     <div class="link-actions">
-                        <button class="edit-btn" onclick="openEditModal(${index}, '${link.isim}', '${link.link}', '${link.foto || ''}')">DÜZENLE</button>
+                        <button class="edit-btn" onclick="openEditModal(${index})">DÜZENLE</button>
                         <button class="delete-btn" onclick="deleteLink(${index})">SİL</button>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         // Dosyayı base64'ye çevirme fonksiyonu
@@ -1004,10 +1014,11 @@
         });
         
         // Edit modalını aç
-        function openEditModal(index, isim, link, foto) {
+        function openEditModal(index) {
+            const link = links[index];
             document.getElementById('editLinkId').value = index;
-            document.getElementById('editLinkName').value = isim;
-            document.getElementById('editLinkUrl').value = link;
+            document.getElementById('editLinkName').value = link.isim;
+            document.getElementById('editLinkUrl').value = link.link;
             // Fotoğraf inputu temizle
             document.getElementById('editLinkPhoto').value = '';
             editModal.classList.add('show');
@@ -1100,26 +1111,25 @@
         // Link sil
         async function deleteLink(index) {
             // Güçlü onay sistemi
-            const linkName = document.querySelectorAll('.link-info h3')[index]?.textContent || 'Bu link';
+            const link = links[index];
+            if (!link) return;
+            
+            const linkName = link.isim;
             if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!\nLinkle ilişkili fotoğraf GitHub'da kalacaktır.`)) {
                 return;
             }
             
             try {
-                // 1. Mevcut linkleri al
-                const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                const links = JSON.parse(atob(fileContent.content));
-                
-                // 2. Linki sil
+                // 1. Linki sil
                 const deletedLink = links.splice(index, 1)[0];
                 
-                // 3. Links.json'u güncelle
+                // 2. Links.json'u güncelle
                 await updateLinksJsonOnGithub(links);
                 
-                // 4. Linkleri yeniden yükle
+                // 3. Linkleri yeniden yükle
                 loadLinks();
                 
-                // 5. Silme işlemi sonrası bilgi
+                // 4. Silme işlemi sonrası bilgi
                 console.log('Silinen link:', deletedLink);
                 alert(`${linkName} başarıyla silindi!`);
             } catch (error) {
