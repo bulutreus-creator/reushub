@@ -361,6 +361,22 @@
         function displayLinks(links) {
             const container = document.getElementById('links-container');
             
+            // GitHub ayarlarını al (Önce LocalStorage, sonra URL'den otomatik tespit)
+            let githubRepo = localStorage.getItem('githubRepo') || '';
+            let githubBranch = localStorage.getItem('githubBranch') || 'main';
+            
+            // Eğer LocalStorage'da yoksa ve GitHub Pages üzerindeysek URL'den tespit etmeye çalış
+            if (!githubRepo && window.location.hostname.includes('github.io')) {
+                const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
+                if (pathParts.length > 0) {
+                    const username = window.location.hostname.split('.')[0];
+                    const repo = pathParts[0];
+                    githubRepo = `${username}/${repo}`;
+                }
+            }
+            
+            const githubBaseUrl = githubRepo ? `https://raw.githubusercontent.com/${githubRepo}/${githubBranch}/` : '';
+            
             if (!links || links.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #cccccc; padding: 40px; font-size: 18px;">Henüz hiç link eklenmemiş.</p>';
                 console.log('Linkler boş veya yüklenemedi');
@@ -383,13 +399,16 @@
             }
             
             container.innerHTML = validLinks.map(link => {
-                // Fotoğraf yolunu düzelt - eğer içerik/ ile başlıyorsa
                 let fotoUrl = '';
                 if (link.foto) {
-                    // Türkçe karakterleri içeren fotoğraf yollarını URL encode et
-                    fotoUrl = encodeURI(link.foto);
-                    // Eğer fotoğraf yolu içerik/ ile başlıyorsa, doğrudan kullan
-                    // Aksi halde photos/ ile başlıyorsa onu kullan
+                    // Eğer link.foto zaten bir URL ise doğrudan kullan
+                    if (link.foto.startsWith('http')) {
+                        fotoUrl = link.foto;
+                    } else {
+                        // GitHub üzerinden çek (githubBaseUrl varsa başına ekle)
+                        const cleanPath = link.foto.replace(/^\/+/, ''); // Başındaki / işaretini temizle
+                        fotoUrl = githubBaseUrl ? githubBaseUrl + encodeURI(cleanPath) : encodeURI(cleanPath);
+                    }
                 }
                 
                 return `

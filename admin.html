@@ -1180,12 +1180,27 @@
                 const linkUrl = link.link;
                 const foto = link.foto || '';
                 
+                // GitHub üzerinden fotoğraf URL'si oluştur
+                let fotoDisplayUrl = '';
+                if (foto) {
+                    if (foto.startsWith('http')) {
+                        fotoDisplayUrl = foto;
+                    } else if (githubSettings.repo) {
+                        fotoDisplayUrl = `https://raw.githubusercontent.com/${githubSettings.repo}/${githubSettings.branch}/${foto}`;
+                    } else {
+                        fotoDisplayUrl = foto; // Fallback to relative
+                    }
+                }
+                
                 return `
                 <div class="link-item">
-                    <div class="link-info">
-                        <h3>${isim}</h3>
-                        <p>${linkUrl}</p>
-                        <p style="font-size: 12px; color: #888; margin-top: 5px;">Foto: ${foto ? 'Var' : 'Yok'}</p>
+                    <div class="link-info" style="display: flex; align-items: center; gap: 15px;">
+                        ${fotoDisplayUrl ? `<img src="${fotoDisplayUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; border: 1px solid #444;" onerror="this.src='https://via.placeholder.com/50?text=Hata'">` : '<div style="width: 50px; height: 50px; background: #333; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #666; font-size: 20px;">📷</div>'}
+                        <div>
+                            <h3>${isim}</h3>
+                            <p>${linkUrl}</p>
+                            <p style="font-size: 12px; color: #888; margin-top: 5px;">Yol: ${foto || 'Yok'}</p>
+                        </div>
                     </div>
                     <div class="link-actions">
                         <button class="edit-btn" onclick="openEditModal(${index})">DÜZENLE</button>
