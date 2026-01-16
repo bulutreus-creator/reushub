@@ -475,32 +475,134 @@
             .add-link-form {
                 grid-template-columns: 1fr;
             }
+            
+            .container {
+                padding: 15px;
+            }
         }
         
         @media (max-width: 768px) {
             .admin-login {
-                margin: 50px auto;
-                padding: 30px;
+                margin: 30px auto;
+                padding: 25px 20px;
+                max-width: 100%;
             }
             
             .admin-login h1 {
-                font-size: 24px;
+                font-size: 22px;
+                letter-spacing: 2px;
+            }
+            
+            .admin-login input {
+                font-size: 16px; /* iOS zoom'u önlemek için */
+                padding: 14px;
+            }
+            
+            .admin-login .login-btn {
+                padding: 16px;
+                font-size: 16px;
             }
             
             .panel-header {
                 flex-direction: column;
                 gap: 20px;
                 text-align: center;
+                padding-bottom: 15px;
+            }
+            
+            .panel-header h1 {
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            
+            .logout-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            .add-link-section {
+                padding: 20px 15px;
+                margin-bottom: 30px;
+            }
+            
+            .add-link-section h2 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .add-link-form {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .form-group input {
+                font-size: 16px; /* iOS zoom'u önlemek için */
+                padding: 14px;
+            }
+            
+            .add-btn {
+                width: 100%;
+                padding: 14px;
+                font-size: 16px;
             }
             
             .link-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
+                padding: 15px;
+            }
+            
+            .link-info h3 {
+                font-size: 18px;
+            }
+            
+            .link-info p {
+                font-size: 13px;
+                word-break: break-word;
             }
             
             .link-actions {
-                align-self: flex-end;
+                width: 100%;
+                display: flex;
+                gap: 10px;
+            }
+            
+            .edit-btn, .delete-btn {
+                flex: 1;
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px 15px;
+                max-height: 90vh;
+            }
+            
+            .modal-header h3 {
+                font-size: 18px;
+            }
+            
+            .modal-form .form-group {
+                margin-bottom: 15px;
+            }
+            
+            .modal-form input {
+                font-size: 16px; /* iOS zoom'u önlemek için */
+                padding: 14px;
+            }
+            
+            .modal-form .form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .save-btn, .cancel-btn {
+                width: 100%;
+                padding: 14px;
+                font-size: 15px;
             }
             
             #photoGallery {
@@ -510,6 +612,65 @@
             
             .photo-thumbnail {
                 height: 80px;
+            }
+            
+            .backup-section {
+                padding: 20px 15px;
+            }
+            
+            .backup-section h2 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .backup-section button {
+                width: 100%;
+                margin-bottom: 10px;
+                padding: 14px;
+                font-size: 14px;
+            }
+            
+            .backup-section > div {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .admin-login {
+                margin: 20px auto;
+                padding: 20px 15px;
+            }
+            
+            .admin-login h1 {
+                font-size: 20px;
+            }
+            
+            .panel-header h1 {
+                font-size: 20px;
+            }
+            
+            .add-link-section h2,
+            .links-section h2,
+            .backup-section h2 {
+                font-size: 18px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            #photoGallery {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 8px;
+            }
+            
+            .photo-thumbnail {
+                height: 70px;
+            }
+            
+            .photo-name {
+                font-size: 11px;
+                padding: 6px;
             }
         }
     </style>
@@ -531,6 +692,7 @@
         <div id="adminPanel" class="admin-panel">
             <div class="panel-header">
                 <h1>Reushub - Admin Panel</h1>
+                <button class="logout-btn" onclick="location.reload()">ÇIKIŞ YAP</button>
             </div>
             
             <!-- GitHub API Ayarları -->
@@ -549,7 +711,9 @@
                         <label for="githubBranch">Branch Adı (varsayılan: main)</label>
                         <input type="text" id="githubBranch" placeholder="main" value="main">
                     </div>
-                    <button type="button" id="saveGitHubSettings" class="add-btn">AYARLARI KAYDET</button>
+                    <div class="form-group">
+                        <button type="button" id="saveGitHubSettings" class="add-btn">AYARLARI KAYDET</button>
+                    </div>
                 </div>
             </div>
 
@@ -571,24 +735,26 @@
                     </div>
                     <div class="form-group">
                         <label for="selectedPhoto">Mevcut Fotoğraf Kullan</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" id="selectedPhoto" name="selectedPhoto" placeholder="Seçilen fotoğraf yolu" readonly style="flex: 1;">
-                            <button type="button" class="add-btn" onclick="openPhotoGallery()" style="padding: 10px 15px; font-size: 14px;">GALERİ</button>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="selectedPhoto" name="selectedPhoto" placeholder="Seçilen fotoğraf yolu" readonly style="flex: 1; min-width: 200px;">
+                            <button type="button" class="add-btn" onclick="openPhotoGallery()" style="padding: 10px 15px; font-size: 14px; white-space: nowrap;">GALERİ</button>
                         </div>
                         <p id="selectedPhotoDisplay" style="font-size: 12px; color: #888; margin-top: 5px;"></p>
                     </div>
-                    <button type="submit" class="add-btn">EKLE</button>
+                    <div class="form-group">
+                        <button type="submit" class="add-btn">EKLE</button>
+                    </div>
                 </form>
             </div>
             
             <!-- Yedekleme Bölümü -->
-            <div class="backup-section">
+            <div class="backup-section" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%); border: 1px solid rgba(255, 140, 0, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 40px;">
                 <h2>Veri Yedekleme</h2>
-                <div style="display: flex; gap: 15px; margin-bottom: 30px;">
-                    <button type="button" onclick="backupLinksJson()" class="add-btn">
+                <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+                    <button type="button" onclick="backupLinksJson()" class="add-btn" style="flex: 1; min-width: 200px;">
                         📥 LINKS.JSON YEDekle
                     </button>
-                    <button type="button" onclick="listAndBackupPhotos()" class="add-btn">
+                    <button type="button" onclick="listAndBackupPhotos()" class="add-btn" style="flex: 1; min-width: 200px;">
                         📸 FOTOĞRAFLARI LİSTELE VE YEDekle
                     </button>
                 </div>
@@ -764,7 +930,8 @@
             try {
                 // GitHub'dan links.json dosyasını al
                 const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                links = JSON.parse(atob(fileContent.content));
+                // Türkçe karakter desteği için b64DecodeUnicode kullan
+                links = JSON.parse(b64DecodeUnicode(fileContent.content));
                 
                 displayLinks(links);
             } catch (error) {
@@ -952,6 +1119,13 @@
                 }));
         }
         
+        // Unicode destekli base64 çözme fonksiyonu
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+        
         // Links.json'u GitHub'a güncelle (SHA conflict'leri için retry mantığı ile)
         async function updateLinksJsonOnGithub(links) {
             const maxRetries = 3;
@@ -1108,7 +1282,8 @@
                 let links = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    const parsedContent = JSON.parse(atob(fileContent.content));
+                    // Türkçe karakter desteği için b64DecodeUnicode kullan
+                    const parsedContent = JSON.parse(b64DecodeUnicode(fileContent.content));
                     // Eğer parse edilen veri dizi değilse veya boşsa boş dizi kullan
                     links = Array.isArray(parsedContent) ? parsedContent : [];
                     console.log('Mevcut linkler sayısı:', links.length);
@@ -1215,7 +1390,8 @@
                 let links = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    links = JSON.parse(atob(fileContent.content));
+                    // Türkçe karakter desteği için b64DecodeUnicode kullan
+                    links = JSON.parse(b64DecodeUnicode(fileContent.content));
                     // Eğer parse edilen veri dizi değilse boş dizi kullan
                     if (!Array.isArray(links)) {
                         links = [];
@@ -1279,7 +1455,8 @@
             try {
                 // 1. En son linkleri GitHub'dan al (SHA conflict önlemek için)
                 const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                let latestLinks = JSON.parse(atob(fileContent.content));
+                // Türkçe karakter desteği için b64DecodeUnicode kullan
+                let latestLinks = JSON.parse(b64DecodeUnicode(fileContent.content));
                 
                 // Eğer parse edilen veri dizi değilse boş dizi kullan
                 if (!Array.isArray(latestLinks)) {
