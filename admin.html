@@ -952,60 +952,76 @@
                 }));
         }
         
-        // Links.json'u GitHub'a güncelle
+        // Links.json'u GitHub'a güncelle (SHA conflict'leri için retry mantığı ile)
         async function updateLinksJsonOnGithub(links) {
-            try {
-                let sha = '';
-                let fileExists = true;
-                
-                // Mevcut dosyanın SHA'sını almayı dene
+            const maxRetries = 3;
+            let retries = 0;
+            
+            while (retries < maxRetries) {
                 try {
-                    const fileInfo = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    sha = fileInfo.sha;
-                } catch (getFileError) {
-                    if (getFileError.message.includes('Not Found')) {
-                        fileExists = false;
-                    } else {
-                        throw new Error('Dosya bilgisi alınamadı: ' + getFileError.message);
+                    let sha = '';
+                    let fileExists = true;
+                    
+                    // Mevcut dosyanın SHA'sını almayı dene
+                    try {
+                        const fileInfo = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                        sha = fileInfo.sha;
+                    } catch (getFileError) {
+                        if (getFileError.message.includes('Not Found')) {
+                            fileExists = false;
+                        } else {
+                            throw new Error('Dosya bilgisi alınamadı: ' + getFileError.message);
+                        }
                     }
+                    
+                    // JSON'u Unicode destekli base64 olarak kodla
+                    const jsonString = JSON.stringify(links, null, 2);
+                    const base64Content = b64EncodeUnicode(jsonString);
+                    
+                    const requestBody = {
+                        message: fileExists ? 'Update links' : 'Create links.json',
+                        content: base64Content,
+                        branch: githubSettings.branch
+                    };
+                    
+                    // Eğer dosya varsa SHA ekle
+                    if (fileExists) {
+                        requestBody.sha = sha;
+                    }
+                    
+                    await githubApiRequest('contents/links.json', 'PUT', requestBody);
+                    
+                    return true;
+                } catch (error) {
+                    // SHA conflict hatası için retry
+                    if (error.message.includes('does not match') && error.message.includes('409') && retries < maxRetries - 1) {
+                        retries++;
+                        console.log(`SHA conflict! Yeniden deniyorum (${retries}/${maxRetries})...`);
+                        // Kısa bir bekleme süresi ekle
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        continue;
+                    }
+                    
+                    // Daha ayrıntılı hata mesajları
+                    let errorMessage = 'Links güncellenemedi: ';
+                    
+                    if (error.message.includes('Resource not accessible')) {
+                        errorMessage += 'GitHub tokenınızın yeterli izinleri yok! Lütfen tokenınızı kontrol edin.';
+                    } else if (error.message.includes('SHA not valid') || error.message.includes('does not match')) {
+                        errorMessage += 'Dosya güncellenmiş olabilir. Lütfen sayfayı yenileyin ve tekrar deneyin.';
+                    } else if (error.message.includes('Not Found')) {
+                        errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
+                    } else if (error.message.includes('invalid characters')) {
+                        errorMessage += 'Geçersiz karakterler tespit edildi! Türkçe karakterler kullanılabilir, lütfen sayfayı yenileyin ve tekrar deneyin.';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    throw new Error(errorMessage);
                 }
-                
-                // JSON'u Unicode destekli base64 olarak kodla
-                const jsonString = JSON.stringify(links, null, 2);
-                const base64Content = b64EncodeUnicode(jsonString);
-                
-                const requestBody = {
-                    message: fileExists ? 'Update links' : 'Create links.json',
-                    content: base64Content,
-                    branch: githubSettings.branch
-                };
-                
-                // Eğer dosya varsa SHA ekle
-                if (fileExists) {
-                    requestBody.sha = sha;
-                }
-                
-                await githubApiRequest('contents/links.json', 'PUT', requestBody);
-                
-                return true;
-            } catch (error) {
-                // Daha ayrıntılı hata mesajları
-                let errorMessage = 'Links güncellenemedi: ';
-                
-                if (error.message.includes('Resource not accessible')) {
-                    errorMessage += 'GitHub tokenınızın yeterli izinleri yok! Lütfen tokenınızı kontrol edin.';
-                } else if (error.message.includes('SHA not valid')) {
-                    errorMessage += 'Dosya güncellenmiş olabilir. Lütfen sayfayı yenileyin ve tekrar deneyin.';
-                } else if (error.message.includes('Not Found')) {
-                    errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
-                } else if (error.message.includes('invalid characters')) {
-                    errorMessage += 'Geçersiz karakterler tespit edildi! Türkçe karakterler kullanılabilir, lütfen sayfayı yenileyin ve tekrar deneyin.';
-                } else {
-                    errorMessage += error.message;
-                }
-                
-                throw new Error(errorMessage);
             }
+            
+            throw new Error('Links güncellenemedi: Çok fazla deneme yapıldı. Lütfen sayfayı yenileyin ve tekrar deneyin.');
         }
         
         // Links.json'u yedekle (kullanıcıya indirme olarak sunar)
@@ -1261,16 +1277,30 @@
             }
             
             try {
-                // 1. Linki sil
-                const deletedLink = links.splice(index, 1)[0];
+                // 1. En son linkleri GitHub'dan al (SHA conflict önlemek için)
+                const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                let latestLinks = JSON.parse(atob(fileContent.content));
                 
-                // 2. Links.json'u güncelle
-                await updateLinksJsonOnGithub(links);
+                // Eğer parse edilen veri dizi değilse boş dizi kullan
+                if (!Array.isArray(latestLinks)) {
+                    latestLinks = [];
+                }
                 
-                // 3. Linkleri yeniden yükle
+                // 2. Linki sil (indexe göre değil, link ismine veya diğer benzersiz bir özelliğe göre)
+                const linkIndex = latestLinks.findIndex(l => l.isim === link.isim && l.link === link.link);
+                if (linkIndex === -1) {
+                    throw new Error('Link bulunamadı! Dosya güncellenmiş olabilir.');
+                }
+                
+                const deletedLink = latestLinks.splice(linkIndex, 1)[0];
+                
+                // 3. Links.json'u güncelle
+                await updateLinksJsonOnGithub(latestLinks);
+                
+                // 4. Linkleri yeniden yükle
                 loadLinks();
                 
-                // 4. Silme işlemi sonrası bilgi
+                // 5. Silme işlemi sonrası bilgi
                 console.log('Silinen link:', deletedLink);
                 alert(`${linkName} başarıyla silindi!`);
             } catch (error) {
