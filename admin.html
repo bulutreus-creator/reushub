@@ -1071,10 +1071,30 @@
         
         // GitHub ayarlarını kaydet
         document.getElementById('saveGitHubSettings').addEventListener('click', function() {
+            const token = document.getElementById('githubToken').value.trim();
+            const repo = document.getElementById('githubRepo').value.trim();
+            const branch = document.getElementById('githubBranch').value.trim() || 'main';
+            
+            if (!token) {
+                alert('Lütfen GitHub Personal Access Token girin!');
+                return;
+            }
+            
+            if (!repo) {
+                alert('Lütfen GitHub Depo Adı girin!');
+                return;
+            }
+            
+            // Depo adı doğru formatta mı kontrol et (username/repo)
+            if (!repo.includes('/')) {
+                alert('Depo adı "username/repo" formatında olmalıdır!');
+                return;
+            }
+            
             githubSettings = {
-                token: document.getElementById('githubToken').value,
-                repo: document.getElementById('githubRepo').value,
-                branch: document.getElementById('githubBranch').value
+                token: token,
+                repo: repo,
+                branch: branch
             };
             
             localStorage.setItem('githubToken', githubSettings.token);
@@ -1484,6 +1504,11 @@
         
         // Fotoğrafı GitHub'a yükle
         async function uploadPhotoToGithub(file) {
+            // GitHub ayarlarını kontrol et
+            if (!githubSettings.token || !githubSettings.repo) {
+                throw new Error('GitHub ayarları eksik! Lütfen GitHub API ayarlarınızı kaydedin.');
+            }
+            
             // Dosya doğrulaması
             if (!file) {
                 throw new Error('Lütfen bir fotoğraf seçin!');
@@ -1727,41 +1752,69 @@
             }
             
             try {
+                // Kullanıcıya yükleme başladığını bildir
+                alert('Fotoğraf yükleniyor, lütfen bekleyin...');
+                
                 // 1. Fotoğraf işlemleri
                 let fotoPath = '';
-                const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
                 
                 if (file) {
-                    // Fotoğrafı bekleyen listesine ekle (henüz yükleme)
-                    pendingPhotos.push({
-                        file: file,
-                        tempId: tempId
-                    });
-                    fotoPath = ''; // Geçici olarak boş, kaydetme sırasında yüklenecek
+                    // Fotoğrafı doğrudan GitHub'a yükle
+                    fotoPath = await uploadPhotoToGithub(file);
+                    console.log('Fotoğraf GitHuba yüklendi:', fotoPath);
                 } else if (selectedPhotoPath) {
                     // Galeriden fotoğraf seçildi
                     fotoPath = selectedPhotoPath;
+                    console.log('Galeri fotoğrafı seçildi:', fotoPath);
                 }
                 
-                // 2. Yeni linki yerel array'e ekle
+                // 2. En son linkleri GitHub'dan al (SHA conflict önlemek için)
+                let latestLinks = [];
+                try {
+                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse boş dizi kullan
+                    if (!Array.isArray(latestLinks)) {
+                        latestLinks = [];
+                    }
+                } catch (getFileError) {
+                    // Dosya bulunamazsa boş dizi kullan
+                    if (getFileError.message.includes('Not Found')) {
+                        latestLinks = [];
+                    } else {
+                        throw getFileError;
+                    }
+                }
+                
+                // 3. Yeni linki ekle
                 const newLink = {
                     isim: isim,
                     link: link,
                     foto: fotoPath || '',
                     clickCount: 0,
-                    createdAt: new Date().toISOString(),
-                    tempId: file ? tempId : undefined // Fotoğraf varsa tempId ekle
+                    createdAt: new Date().toISOString()
                 };
                 
-                links.push(newLink);
+                latestLinks.push(newLink);
                 
-                // 3. Formu temizle
+                // 4. Links.json'u güncelle
+                await updateLinksJsonOnGithub(latestLinks);
+                console.log('Links.json güncellendi');
+                
+                // 5. Formu temizle
                 this.reset();
                 // Galeri seçimini temizle
                 document.getElementById('selectedPhoto').value = '';
                 document.getElementById('selectedPhotoDisplay').textContent = '';
                 
-                // 4. Geçmişe kaydet
+                // 6. Linkleri yeniden yükle
+                await loadLinks();
+                console.log('Linkler yeniden yüklendi');
+                
+                // 7. Kullanıcıya başarı mesajı göster
+                alert('Link ve fotoğraf başarıyla GitHuba yüklendi!');
+                
+                // 8. Geçmişe kaydet
                 saveToHistory();
                 
                 // 5. Linkleri göster
