@@ -1936,49 +1936,92 @@
                 let fotoPath = existingLink.foto || '';
                 const clickCount = existingLink.clickCount || 0;
                 const createdAt = existingLink.createdAt || new Date().toISOString();
-                const tempId = existingLink.tempId;
                 
-                // 3. Eğer yeni fotoğraf yüklendiyse bekleyen listesine ekle
+                // 3. Eğer yeni fotoğraf yüklendiyse GitHub'a yükle
                 if (file) {
-                    const newTempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-                    pendingPhotos.push({
-                        file: file,
-                        tempId: newTempId,
-                        linkIndex: linkIndex
-                    });
-                    // Geçici olarak boş bırak, kaydetme sırasında yüklenecek
-                    fotoPath = '';
+                    alert('Fotoğraf yükleniyor, lütfen bekleyin...');
+                    fotoPath = await uploadPhotoToGithub(file);
+                    console.log('Fotoğraf GitHuba yüklendi:', fotoPath);
                 }
                 
-                // 4. Linki yerel array'de güncelle
-                links[linkIndex] = { 
-                    isim, 
-                    link, 
-                    foto: fotoPath, 
+                // 4. En son linkleri GitHub'dan al (SHA conflict önlemek için)
+                let latestLinks = [];
+                try {
+                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse boş dizi kullan
+                    if (!Array.isArray(latestLinks)) {
+                        latestLinks = [];
+                    }
+                } catch (getFileError) {
+                    // Dosya bulunamazsa boş dizi kullan
+                    if (getFileError.message.includes('Not Found')) {
+                        latestLinks = [];
+                    } else {
+                        throw getFileError;
+                    }
+                }
+                
+                // 5. Düzenlenecek linki GitHub'dan gelen en son listede bul
+                let githubLinkIndex = -1;
+                if (existingLink.createdAt) {
+                    githubLinkIndex = latestLinks.findIndex(l => l.createdAt === existingLink.createdAt);
+                }
+                
+                // Eğer createdAt ile bulunamazsa, isim ve link ile bul
+                if (githubLinkIndex === -1) {
+                    githubLinkIndex = latestLinks.findIndex(l => 
+                        l.isim === existingLink.isim && 
+                        l.link === existingLink.link
+                    );
+                }
+                
+                // 6. Linki güncelle
+                const updatedLink = {
+                    isim: isim,
+                    link: link,
+                    foto: fotoPath || '',
                     clickCount: clickCount,
-                    createdAt: createdAt,
-                    tempId: file ? (tempId || 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)) : tempId
+                    createdAt: createdAt
                 };
                 
-                // 5. Geçmişe kaydet
-                saveToHistory();
+                if (githubLinkIndex !== -1) {
+                    // Link bulundu, güncelle
+                    latestLinks[githubLinkIndex] = updatedLink;
+                } else {
+                    // Link bulunamadı, yeni link olarak ekle
+                    latestLinks.push(updatedLink);
+                }
                 
-                // 6. Modalı kapat
+                // 7. Links.json'u güncelle
+                await updateLinksJsonOnGithub(latestLinks);
+                console.log('Links.json güncellendi');
+                
+                // 8. Linkleri yeniden yükle
+                await loadLinks();
+                console.log('Linkler yeniden yüklendi');
+                
+                // 9. Modalı kapat
                 closeEditModal();
                 
-                // 7. Linkleri göster
+                // 10. Linkleri göster
                 displayLinks(links);
                 
-                // 8. Değişiklik durumunu güncelle
-                hasUnsavedChanges = true;
+                // 11. Kullanıcıya başarı mesajı göster
+                alert('Link başarıyla güncellendi!');
+                
+                // 12. Değişiklik durumunu güncelle
+                hasUnsavedChanges = false;
                 updateUnsavedChangesStatus();
                 
-                // 9. Otomatik yedekleme
+                // 13. Geçmişi temizle (kaydedildiği için artık gerekli değil)
+                linksHistory = [];
+                
+                // 14. Otomatik yedekleme
                 if (autoSaveEnabled) {
                     autoBackupToLocal();
                 }
                 
-                showSuccessMessage('Link güncellendi! Değişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.');
             } catch (error) {
                 console.error('Link düzenlenirken hata oluştu:', error);
                 alert('Link düzenlenirken hata oluştu: ' + error.message);
@@ -1986,48 +2029,76 @@
         });
         
         // Link sil
-        function deleteLink(index) {
+        async function deleteLink(index) {
             // Güçlü onay sistemi
             const link = links[index];
             if (!link) return;
             
             const linkName = link.isim;
-            if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!\nDeğişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.`)) {
+            if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!`)) {
                 return;
             }
             
             try {
-                // 1. Bekleyen fotoğraflardan bu link'e ait olanları kaldır
-                pendingPhotos = pendingPhotos.filter(p => {
-                    if (p.linkIndex === index) {
-                        return false;
+                // 1. En son linkleri GitHub'dan al (SHA conflict önlemek için)
+                let latestLinks = [];
+                try {
+                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
+                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Eğer parse edilen veri dizi değilse boş dizi kullan
+                    if (!Array.isArray(latestLinks)) {
+                        latestLinks = [];
                     }
-                    // Eğer tempId ile eşleşiyorsa da kaldır
-                    if (link.tempId && p.tempId === link.tempId) {
-                        return false;
+                } catch (getFileError) {
+                    // Dosya bulunamazsa boş dizi kullan
+                    if (getFileError.message.includes('Not Found')) {
+                        latestLinks = [];
+                    } else {
+                        throw getFileError;
                     }
-                    return true;
-                });
-                
-                // 2. Linki yerel array'den sil
-                links.splice(index, 1);
-                
-                // 3. Geçmişe kaydet
-                saveToHistory();
-                
-                // 4. Linkleri göster
-                displayLinks(links);
-                
-                // 5. Değişiklik durumunu güncelle
-                hasUnsavedChanges = true;
-                updateUnsavedChangesStatus();
-                
-                // 6. Otomatik yedekleme
-                if (autoSaveEnabled) {
-                    autoBackupToLocal();
                 }
                 
-                showSuccessMessage(`${linkName} silindi! Değişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.`);
+                // 2. Silinecek linki GitHub'dan gelen en son listede bul
+                let githubLinkIndex = -1;
+                if (link.createdAt) {
+                    githubLinkIndex = latestLinks.findIndex(l => l.createdAt === link.createdAt);
+                }
+                
+                // Eğer createdAt ile bulunamazsa, isim ve link ile bul
+                if (githubLinkIndex === -1) {
+                    githubLinkIndex = latestLinks.findIndex(l => 
+                        l.isim === link.isim && 
+                        l.link === link.link
+                    );
+                }
+                
+                // 3. Linki GitHub listesinden sil
+                if (githubLinkIndex !== -1) {
+                    latestLinks.splice(githubLinkIndex, 1);
+                }
+                
+                // 4. Links.json'u güncelle
+                await updateLinksJsonOnGithub(latestLinks);
+                console.log('Links.json güncellendi');
+                
+                // 5. Linkleri yeniden yükle
+                await loadLinks();
+                console.log('Linkler yeniden yüklendi');
+                
+                // 6. Linkleri göster
+                displayLinks(links);
+                
+                // 7. Kullanıcıya başarı mesajı göster
+                alert('Link başarıyla silindi!');
+                
+                // 8. Değişiklik durumunu güncelle
+                hasUnsavedChanges = false;
+                updateUnsavedChangesStatus();
+                
+                // 9. Geçmişi temizle (kaydedildiği için artık gerekli değil)
+                linksHistory = [];
+                
+                showSuccessMessage(`${linkName} silindi!`);
             } catch (error) {
                 console.error('Link silinirken hata oluştu:', error);
                 alert('Link silinirken hata oluştu: ' + error.message);
