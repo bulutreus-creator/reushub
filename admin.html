@@ -437,6 +437,39 @@
             color: #ffffff;
         }
         
+        /* Fotoğraf Galerisi Stilleri */
+        .photo-item {
+            cursor: pointer;
+            border: 2px solid rgba(255, 140, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .photo-item:hover {
+            border-color: rgba(255, 140, 0, 0.6);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+        
+        .photo-thumbnail {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        
+        .photo-name {
+            margin: 0;
+            padding: 8px;
+            font-size: 12px;
+            color: #cccccc;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
         /* Responsive */
         @media (max-width: 992px) {
             .add-link-form {
@@ -468,6 +501,15 @@
             
             .link-actions {
                 align-self: flex-end;
+            }
+            
+            #photoGallery {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 10px;
+            }
+            
+            .photo-thumbnail {
+                height: 80px;
             }
         }
     </style>
@@ -527,6 +569,14 @@
                         <label for="linkPhoto">Fotoğraf Yükle (Opsiyonel)</label>
                         <input type="file" id="linkPhoto" name="linkPhoto" accept="image/*">
                     </div>
+                    <div class="form-group">
+                        <label for="selectedPhoto">Mevcut Fotoğraf Kullan</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="selectedPhoto" name="selectedPhoto" placeholder="Seçilen fotoğraf yolu" readonly style="flex: 1;">
+                            <button type="button" class="add-btn" onclick="openPhotoGallery()" style="padding: 10px 15px; font-size: 14px;">GALERİ</button>
+                        </div>
+                        <p id="selectedPhotoDisplay" style="font-size: 12px; color: #888; margin-top: 5px;"></p>
+                    </div>
                     <button type="submit" class="add-btn">EKLE</button>
                 </form>
             </div>
@@ -584,6 +634,21 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Fotoğraf Galeri Modal -->
+        <div id="photoGalleryModal" class="modal">
+            <div class="modal-content" style="width: 90%; max-width: 1000px; max-height: 80vh;">
+                <div class="modal-header">
+                    <h3>Fotoğraf Galerisi</h3>
+                    <button id="closeGalleryModal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="photoGallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
+                        <!-- Fotoğraflar buraya dinamik olarak eklenecek -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -592,6 +657,8 @@
         const closeModal = document.getElementById('closeModal');
         const cancelEditBtn = document.getElementById('cancelEditBtn');
         const editLinkForm = document.getElementById('editLinkForm');
+        const photoGalleryModal = document.getElementById('photoGalleryModal');
+        const closeGalleryModal = document.getElementById('closeGalleryModal');
         
         // Global links array
         let links = [];
@@ -745,6 +812,64 @@
                 reader.onerror = (error) => reject(error);
                 reader.readAsDataURL(file);
             });
+        }
+        
+        // Fotoğraf galerisi fonksiyonları
+        function openPhotoGallery() {
+            photoGalleryModal.classList.add('show');
+            displayPhotoGallery();
+        }
+        
+        function closePhotoGallery() {
+            photoGalleryModal.classList.remove('show');
+        }
+        
+        // GitHub'daki fotoğrafları listele
+        async function listPhotosFromGithub() {
+            try {
+                const response = await githubApiRequest('contents/photos?ref=' + githubSettings.branch);
+                // .gitkeep dosyasını filtrele
+                const photos = response.filter(item => item.name !== '.gitkeep');
+                return photos;
+            } catch (error) {
+                if (error.message.includes('Not Found')) {
+                    return [];
+                }
+                throw error;
+            }
+        }
+        
+        // Fotoğraf galerisini göster
+        async function displayPhotoGallery() {
+            try {
+                const photos = await listPhotosFromGithub();
+                const galleryContainer = document.getElementById('photoGallery');
+                
+                if (photos.length === 0) {
+                    galleryContainer.innerHTML = '<p style="color: #cccccc; text-align: center; padding: 20px;">Henüz fotoğraf yüklenmemiş.</p>';
+                    return;
+                }
+                
+                galleryContainer.innerHTML = photos.map(photo => `
+                    <div class="photo-item" onclick="selectPhoto('${photo.path}')">
+                        <img src="https://raw.githubusercontent.com/${githubSettings.repo}/${githubSettings.branch}/${photo.path}" alt="${photo.name}" class="photo-thumbnail">
+                        <p class="photo-name">${photo.name}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Fotoğraflar listelenirken hata oluştu:', error);
+                document.getElementById('photoGallery').innerHTML = `<p style="color: #ff4444; text-align: center; padding: 20px;">Fotoğraflar yüklenemedi: ${error.message}</p>`;
+            }
+        }
+        
+        // Fotoğraf seçme fonksiyonu
+        function selectPhoto(photoPath) {
+            // Seçilen fotoğrafı input'a ekle
+            document.getElementById('selectedPhoto').value = photoPath;
+            document.getElementById('selectedPhotoDisplay').textContent = `Seçilen fotoğraf: ${photoPath}`;
+            
+            // Galeri modalını kapat
+            closePhotoGallery();
         }
         
         // Fotoğrafı GitHub'a yükle
@@ -955,6 +1080,7 @@
             const link = document.getElementById('linkUrl').value.trim();
             const fileInput = document.getElementById('linkPhoto');
             const file = fileInput.files[0];
+            const selectedPhotoPath = document.getElementById('selectedPhoto').value.trim();
             
             if (!isim || !link) {
                 alert('İsim ve link alanları zorunludur!');
@@ -980,10 +1106,14 @@
                     }
                 }
                 
-                // 2. Eğer fotoğraf yüklendiyse GitHub'a yükle
+                // 2. Fotoğraf işlemleri
                 let fotoPath = '';
                 if (file) {
+                    // Yeni fotoğraf yüklendi
                     fotoPath = await uploadPhotoToGithub(file);
+                } else if (selectedPhotoPath) {
+                    // Galeriden fotoğraf seçildi
+                    fotoPath = selectedPhotoPath;
                 }
                 
                 // 3. Yeni linki ekle (güvenli yapı)
@@ -1002,6 +1132,9 @@
                 
                 // 5. Formu temizle
                 this.reset();
+                // Galeri seçimini temizle
+                document.getElementById('selectedPhoto').value = '';
+                document.getElementById('selectedPhotoDisplay').textContent = '';
                 
                 // 6. Linkleri yeniden yükle
                 loadLinks();
@@ -1037,6 +1170,14 @@
             editModal.classList.remove('show');
             editLinkForm.reset();
         }
+        
+        // Fotoğraf galerisi modalını kapat
+        closeGalleryModal.addEventListener('click', closePhotoGallery);
+        photoGalleryModal.addEventListener('click', function(e) {
+            if (e.target === photoGalleryModal) {
+                closePhotoGallery();
+            }
+        });
         
         // Link düzenle
         editLinkForm.addEventListener('submit', async function(e) {
