@@ -1772,7 +1772,8 @@
                 let latestLinks = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Türkçe karakter desteği için b64DecodeUnicode kullan
+                    latestLinks = JSON.parse(b64DecodeUnicode(fileContent.content));
                     // Eğer parse edilen veri dizi değilse boş dizi kullan
                     if (!Array.isArray(latestLinks)) {
                         latestLinks = [];
@@ -1948,7 +1949,8 @@
                 let latestLinks = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Türkçe karakter desteği için b64DecodeUnicode kullan
+                    latestLinks = JSON.parse(b64DecodeUnicode(fileContent.content));
                     // Eğer parse edilen veri dizi değilse boş dizi kullan
                     if (!Array.isArray(latestLinks)) {
                         latestLinks = [];
@@ -2044,7 +2046,8 @@
                 let latestLinks = [];
                 try {
                     const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    latestLinks = JSON.parse(atob(fileContent.content));
+                    // Türkçe karakter desteği için b64DecodeUnicode kullan
+                    latestLinks = JSON.parse(b64DecodeUnicode(fileContent.content));
                     // Eğer parse edilen veri dizi değilse boş dizi kullan
                     if (!Array.isArray(latestLinks)) {
                         latestLinks = [];
