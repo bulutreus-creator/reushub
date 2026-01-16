@@ -232,64 +232,164 @@
         });
         
         async function fetchLinks() {
+            const container = document.getElementById('links-container');
+            
+            // Yükleniyor mesajı göster
+            container.innerHTML = '<p style="text-align: center; color: #ff8c00; padding: 40px; font-size: 18px;">⏳ Linkler yükleniyor...</p>';
+            
             try {
                 let allLinks = [];
                 
+                // Protokol kontrolü
+                const isFileProtocol = window.location.protocol === 'file:';
+                
+                if (isFileProtocol) {
+                    // file:// protokolü kullanılıyorsa, alternatif yöntem dene
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #ff8c00; padding: 40px;">
+                            <p style="font-size: 18px; margin-bottom: 20px;">⚠️ Web Sunucusu Gerekli</p>
+                            <p style="font-size: 14px; color: #888; margin-bottom: 20px;">
+                                Dosya doğrudan açıldığı için linkler yüklenemiyor.
+                            </p>
+                            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                                <strong>Çözüm:</strong> Bir web sunucusu kullanın:
+                            </p>
+                            <div style="text-align: left; display: inline-block; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; font-size: 12px; color: #ccc;">
+                                <p style="margin: 5px 0;"><strong>Python:</strong> python -m http.server 8000</p>
+                                <p style="margin: 5px 0;"><strong>Node.js:</strong> npx http-server</p>
+                                <p style="margin: 5px 0;"><strong>PHP:</strong> php -S localhost:8000</p>
+                            </div>
+                            <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                                Sonra tarayıcıda: <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">http://localhost:8000/blank.html</code>
+                            </p>
+                        </div>`;
+                    return;
+                }
+                
                 // 1. links.json dosyasından linkleri al (koruma katmanı)
                 try {
-                    // Cache'i devre dışı bırakarak her seferinde güncel dosyayı al
-                    const response = await fetch('links.json', { cache: 'no-cache' });
+                    // Önce mevcut dizinden dene
+                    let response = null;
+                    let jsonPath = 'links.json';
                     
-                    // Yanıt durumunu kontrol et
-                    if (!response.ok) {
-                        console.log('links.json dosyası bulunamadı veya erişilemedi.');
-                    } else {
-                        // JSON parse edilirken hata olursa yakala
+                    // Farklı yolları dene
+                    const possiblePaths = [
+                        'links.json',
+                        './links.json',
+                        '/links.json'
+                    ];
+                    
+                    let lastError = null;
+                    for (const path of possiblePaths) {
                         try {
-                            const jsonLinks = await response.json();
-                            // Eğer dizi değilse boş dizi kullan
-                            if (Array.isArray(jsonLinks)) {
-                                allLinks = allLinks.concat(jsonLinks);
-                            } else {
-                                console.log('links.json geçerli bir dizi değil.');
+                            response = await fetch(path + '?t=' + Date.now(), { 
+                                cache: 'no-cache',
+                                method: 'GET',
+                                headers: {
+                                    'Cache-Control': 'no-cache',
+                                    'Pragma': 'no-cache'
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                jsonPath = path;
+                                break;
                             }
-                        } catch (parseError) {
-                            console.error('links.json parse edilemedi:', parseError);
+                        } catch (pathError) {
+                            lastError = pathError;
+                            console.log(`Yol deneniyor: ${path} - Hata:`, pathError);
+                            continue;
                         }
                     }
+                    
+                    if (!response || !response.ok) {
+                        throw lastError || new Error(`HTTP ${response?.status || 'unknown'}`);
+                    }
+                    
+                    console.log('Response status:', response.status, 'Path:', jsonPath);
+                    
+                    // JSON parse edilirken hata olursa yakala
+                    try {
+                        const jsonLinks = await response.json();
+                        console.log('JSON yüklendi, link sayısı:', jsonLinks ? (Array.isArray(jsonLinks) ? jsonLinks.length : 'dizi değil') : 'null');
+                        
+                        // Eğer dizi değilse boş dizi kullan
+                        if (Array.isArray(jsonLinks)) {
+                            allLinks = allLinks.concat(jsonLinks);
+                            console.log('Toplam link sayısı:', allLinks.length);
+                        } else {
+                            console.error('links.json geçerli bir dizi değil. Tip:', typeof jsonLinks);
+                            container.innerHTML = '<p style="text-align: center; color: #ff4444; padding: 40px; font-size: 18px;">❌ links.json geçerli bir dizi değil!</p>';
+                            return;
+                        }
+                    } catch (parseError) {
+                        console.error('links.json parse edilemedi:', parseError);
+                        container.innerHTML = '<p style="text-align: center; color: #ff4444; padding: 40px; font-size: 18px;">❌ links.json parse edilemedi: ' + parseError.message + '</p>';
+                        return;
+                    }
                 } catch (error) {
-                    console.log('links.json dosyası bulunamadı.');
+                    console.error('links.json dosyası yüklenirken hata:', error);
+                    const errorMessage = error.message || 'Bilinmeyen hata';
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #ff4444; padding: 40px;">
+                            <p style="font-size: 18px; margin-bottom: 20px;">❌ links.json dosyası bulunamadı!</p>
+                            <p style="font-size: 14px; color: #888; margin-bottom: 10px;">Hata: ${errorMessage}</p>
+                            <p style="font-size: 12px; color: #666;">Lütfen şunları kontrol edin:</p>
+                            <ul style="text-align: left; display: inline-block; color: #666; font-size: 12px; margin-top: 10px;">
+                                <li>links.json dosyası mevcut mu?</li>
+                                <li>Dosya adı doğru mu? (büyük/küçük harf duyarlı)</li>
+                                <li>Dosya aynı klasörde mi?</li>
+                                <li>Web sunucusu çalışıyor mu?</li>
+                            </ul>
+                        </div>`;
+                    return;
                 }
                 
                 // 2. Linkleri göster (güvenli yapı)
                 displayLinks(allLinks);
             } catch (error) {
-                console.error('Linkler yüklenirken hata oluştu:', error);
-                document.getElementById('links-container').innerHTML = '';
+                console.error('Linkler yüklenirken genel hata oluştu:', error);
+                container.innerHTML = '<p style="text-align: center; color: #ff4444; padding: 40px; font-size: 18px;">❌ Linkler yüklenirken hata oluştu: ' + error.message + '</p>';
             }
         }
         
         function displayLinks(links) {
             const container = document.getElementById('links-container');
             
-            if (links.length === 0) {
-                container.innerHTML = '';
+            if (!links || links.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #cccccc; padding: 40px; font-size: 18px;">Henüz hiç link eklenmemiş.</p>';
+                console.log('Linkler boş veya yüklenemedi');
                 return;
             }
             
-            container.innerHTML = links.map(link => {
-                // Link nesnesinin geçerli olup olmadığını kontrol et
+            console.log('Gösterilecek link sayısı:', links.length);
+            
+            const validLinks = links.filter(link => {
                 if (!link || !link.isim || !link.link) {
-                    console.log('Geçersiz link:', link);
-                    return ''; // Geçersiz linki atla
+                    console.log('Geçersiz link atlandı:', link);
+                    return false;
                 }
-                
-                // Türkçe karakterleri içeren fotoğraf yollarını URL encode et
-                const encodedFotoUrl = link.foto ? encodeURI(link.foto) : '';
+                return true;
+            });
+            
+            if (validLinks.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #ff4444; padding: 40px; font-size: 18px;">Geçerli link bulunamadı!</p>';
+                return;
+            }
+            
+            container.innerHTML = validLinks.map(link => {
+                // Fotoğraf yolunu düzelt - eğer içerik/ ile başlıyorsa
+                let fotoUrl = '';
+                if (link.foto) {
+                    // Türkçe karakterleri içeren fotoğraf yollarını URL encode et
+                    fotoUrl = encodeURI(link.foto);
+                    // Eğer fotoğraf yolu içerik/ ile başlıyorsa, doğrudan kullan
+                    // Aksi halde photos/ ile başlıyorsa onu kullan
+                }
                 
                 return `
                 <div class="link-card">
-                    ${link.foto ? `<img src="${encodedFotoUrl}" alt="${link.isim}" class="link-card-image">` : ''}
+                    ${fotoUrl ? `<img src="${fotoUrl}" alt="${link.isim}" class="link-card-image" onerror="this.style.display='none'">` : '<div class="link-card-image" style="background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); display: flex; align-items: center; justify-content: center; color: #ff8c00; font-size: 48px;">📷</div>'}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">

@@ -150,6 +150,163 @@
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 140, 0, 0.2);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .panel-header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .save-all-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .save-all-btn:hover {
+            background: linear-gradient(135deg, #45a049 0%, #4caf50 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .save-all-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .save-all-btn.has-changes::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2);
+            }
+        }
+        
+        .unsaved-changes-notice {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            color: #ffd700;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .unsaved-changes-notice.show {
+            display: block;
+        }
+        
+        .success-message {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            color: #4caf50;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .undo-btn {
+            padding: 6px 12px;
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196f3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .undo-btn:hover {
+            background: rgba(33, 150, 243, 0.3);
+            border-color: rgba(33, 150, 243, 0.5);
+        }
+        
+        .undo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .auto-save-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+        }
+        
+        .auto-save-toggle label {
+            color: #cccccc;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .auto-save-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4caf50;
+            cursor: pointer;
+        }
+        
+        .backup-status {
+            font-size: 12px;
+            color: #888;
+            margin-top: 10px;
         }
         
         .panel-header h1 {
@@ -505,7 +662,7 @@
             
             .panel-header {
                 flex-direction: column;
-                gap: 20px;
+                gap: 15px;
                 text-align: center;
                 padding-bottom: 15px;
             }
@@ -515,7 +672,12 @@
                 letter-spacing: 2px;
             }
             
-            .logout-btn {
+            .panel-header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+            
+            .save-all-btn, .logout-btn {
                 width: 100%;
                 padding: 12px;
                 font-size: 14px;
@@ -692,7 +854,21 @@
         <div id="adminPanel" class="admin-panel">
             <div class="panel-header">
                 <h1>Reushub - Admin Panel</h1>
-                <button class="logout-btn" onclick="location.reload()">ÇIKIŞ YAP</button>
+                <div class="panel-header-actions">
+                    <button id="saveAllBtn" class="save-all-btn" onclick="saveAllChanges()" disabled>
+                        💾 TÜM DEĞİŞİKLİKLERİ KAYDET
+                    </button>
+                    <button class="logout-btn" onclick="location.reload()">ÇIKIŞ YAP</button>
+                </div>
+            </div>
+            
+            <div id="unsavedChangesNotice" class="unsaved-changes-notice">
+                ⚠️ Kaydedilmemiş değişiklikler var! Lütfen "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.
+                <button id="undoBtn" class="undo-btn" onclick="undoLastChange()" style="display: none;">GERİ AL</button>
+            </div>
+            
+            <div id="successMessage" class="success-message">
+                ✅ İşlem başarıyla tamamlandı!
             </div>
             
             <!-- GitHub API Ayarları -->
@@ -749,7 +925,15 @@
             
             <!-- Yedekleme Bölümü -->
             <div class="backup-section" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%); border: 1px solid rgba(255, 140, 0, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 40px;">
-                <h2>Veri Yedekleme</h2>
+                <h2>Veri Yedekleme ve Güvenlik</h2>
+                
+                <div class="auto-save-toggle">
+                    <label>
+                        <input type="checkbox" id="autoSaveToggle" onchange="toggleAutoSave()">
+                        Otomatik Yedekleme (Her değişiklikte otomatik yedekle)
+                    </label>
+                </div>
+                
                 <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
                     <button type="button" onclick="backupLinksJson()" class="add-btn" style="flex: 1; min-width: 200px;">
                         📥 LINKS.JSON YEDekle
@@ -757,9 +941,20 @@
                     <button type="button" onclick="listAndBackupPhotos()" class="add-btn" style="flex: 1; min-width: 200px;">
                         📸 FOTOĞRAFLARI LİSTELE VE YEDekle
                     </button>
+                    <button type="button" onclick="autoBackupToLocal()" class="add-btn" style="flex: 1; min-width: 200px;">
+                        💾 MANUEL YEDEKLE (LocalStorage)
+                    </button>
+                    <button type="button" onclick="restoreFromBackup()" class="add-btn" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #2196f3 0%, #0b7dda 100%);">
+                        🔄 YEDEKTEN GERİ YÜKLE
+                    </button>
                 </div>
+                
+                <div class="backup-status" id="backupStatus">
+                    Son yedekleme: Henüz yedeklenmedi
+                </div>
+                
                 <p style="color: #ffd700; font-size: 14px; margin: 10px 0;">
-                    ⚠️ Önemli: Her değişiklikten önce verilerinizi yedekleyin!
+                    ⚠️ Önemli: Her değişiklikten önce verilerinizi yedekleyin! Otomatik yedekleme açıkken her değişiklik otomatik olarak tarayıcınızda saklanır.
                 </p>
             </div>
 
@@ -828,6 +1023,11 @@
         
         // Global links array
         let links = [];
+        let hasUnsavedChanges = false;
+        let pendingPhotos = []; // Yüklenen ama henüz kaydedilmemiş fotoğraflar
+        let linksHistory = []; // Geri alma için geçmiş
+        let autoSaveEnabled = false; // Otomatik kaydetme
+        let lastBackupTime = null; // Son yedekleme zamanı
         
         // Admin şifre kontrolü
         function checkAdminPassword() {
@@ -933,6 +1133,11 @@
                 // Türkçe karakter desteği için b64DecodeUnicode kullan
                 links = JSON.parse(b64DecodeUnicode(fileContent.content));
                 
+                // Kaydedilmemiş değişiklikleri sıfırla (yeni yükleme yapıldığında)
+                hasUnsavedChanges = false;
+                pendingPhotos = [];
+                updateUnsavedChangesStatus();
+                
                 displayLinks(links);
             } catch (error) {
                 console.error('Linkler yüklenirken hata oluştu:', error);
@@ -941,15 +1146,15 @@
         }
         
         // Linkleri göster
-        function displayLinks(links) {
+        function displayLinks(linksToDisplay) {
             const linksList = document.getElementById('linksList');
             
-            if (links.length === 0) {
+            if (linksToDisplay.length === 0) {
                 linksList.innerHTML = '<p style="text-align: center; color: #cccccc;">Henüz hiç link eklenmemiş.</p>';
                 return;
             }
             
-            linksList.innerHTML = links.map((link, index) => {
+            linksList.innerHTML = linksToDisplay.map((link, index) => {
                 // Link özelliklerini güvenli bir şekilde al
                 const isim = link.isim;
                 const linkUrl = link.link;
@@ -969,6 +1174,244 @@
                 </div>
             `;
             }).join('');
+        }
+        
+        // Değişiklik durumunu güncelle
+        function updateUnsavedChangesStatus() {
+            const saveBtn = document.getElementById('saveAllBtn');
+            const notice = document.getElementById('unsavedChangesNotice');
+            const undoBtn = document.getElementById('undoBtn');
+            
+            if (hasUnsavedChanges) {
+                saveBtn.disabled = false;
+                saveBtn.classList.add('has-changes');
+                notice.classList.add('show');
+                // Geri alma butonunu göster (eğer geçmiş varsa)
+                if (linksHistory.length > 0) {
+                    undoBtn.style.display = 'inline-block';
+                }
+            } else {
+                saveBtn.disabled = true;
+                saveBtn.classList.remove('has-changes');
+                notice.classList.remove('show');
+                undoBtn.style.display = 'none';
+            }
+        }
+        
+        // Başarı mesajı göster
+        function showSuccessMessage(message) {
+            const successMsg = document.getElementById('successMessage');
+            successMsg.textContent = '✅ ' + message;
+            successMsg.classList.add('show');
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Değişiklik geçmişini kaydet (geri alma için)
+        function saveToHistory() {
+            // Sadece son 10 değişikliği sakla
+            if (linksHistory.length >= 10) {
+                linksHistory.shift();
+            }
+            linksHistory.push(JSON.parse(JSON.stringify(links)));
+        }
+        
+        // Son değişikliği geri al
+        function undoLastChange() {
+            if (linksHistory.length === 0) {
+                alert('Geri alınacak değişiklik yok!');
+                return;
+            }
+            
+            if (!confirm('Son değişikliği geri almak istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            links = linksHistory.pop();
+            displayLinks(links);
+            
+            // Eğer geri alındıktan sonra değişiklik yoksa
+            if (linksHistory.length === 0) {
+                hasUnsavedChanges = false;
+            }
+            updateUnsavedChangesStatus();
+            
+            showSuccessMessage('Son değişiklik geri alındı!');
+        }
+        
+        // Otomatik yedeklemeyi aç/kapat
+        function toggleAutoSave() {
+            autoSaveEnabled = document.getElementById('autoSaveToggle').checked;
+            localStorage.setItem('autoSaveEnabled', autoSaveEnabled);
+            
+            if (autoSaveEnabled) {
+                showSuccessMessage('Otomatik yedekleme açıldı!');
+                autoBackupToLocal();
+            } else {
+                showSuccessMessage('Otomatik yedekleme kapatıldı!');
+            }
+        }
+        
+        // LocalStorage'a otomatik yedekleme
+        function autoBackupToLocal() {
+            try {
+                const backupData = {
+                    links: links,
+                    timestamp: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                localStorage.setItem('linksBackup', JSON.stringify(backupData));
+                lastBackupTime = new Date();
+                
+                const backupStatus = document.getElementById('backupStatus');
+                const timeStr = lastBackupTime.toLocaleTimeString('tr-TR');
+                backupStatus.textContent = `Son yedekleme: ${timeStr}`;
+                backupStatus.style.color = '#4caf50';
+                
+                return true;
+            } catch (error) {
+                console.error('Yedekleme hatası:', error);
+                return false;
+            }
+        }
+        
+        // LocalStorage'dan yedekten geri yükle
+        function restoreFromBackup() {
+            try {
+                const backupData = localStorage.getItem('linksBackup');
+                if (!backupData) {
+                    alert('Yedek bulunamadı!');
+                    return false;
+                }
+                
+                const backup = JSON.parse(backupData);
+                if (!confirm(`Yedekten geri yüklemek istediğinizden emin misiniz?\n\nYedek tarihi: ${new Date(backup.timestamp).toLocaleString('tr-TR')}\n\nBu işlem mevcut verileri değiştirecektir!`)) {
+                    return false;
+                }
+                
+                links = backup.links;
+                displayLinks(links);
+                hasUnsavedChanges = true;
+                updateUnsavedChangesStatus();
+                
+                showSuccessMessage('Yedekten geri yüklendi! Değişiklikleri kaydetmeyi unutmayın!');
+                return true;
+            } catch (error) {
+                console.error('Geri yükleme hatası:', error);
+                alert('Yedekten geri yüklenirken hata oluştu: ' + error.message);
+                return false;
+            }
+        }
+        
+        // Sayfa kapatılırken uyarı
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'Kaydedilmemiş değişiklikler var! Sayfadan ayrılmak istediğinizden emin misiniz?';
+                return e.returnValue;
+            }
+        });
+        
+        // Sayfa yüklendiğinde otomatik yedekleme ayarını kontrol et
+        window.addEventListener('DOMContentLoaded', function() {
+            const autoSaveSetting = localStorage.getItem('autoSaveEnabled');
+            if (autoSaveSetting === 'true') {
+                autoSaveEnabled = true;
+                document.getElementById('autoSaveToggle').checked = true;
+            }
+            
+            // Son yedekleme zamanını göster
+            const backupData = localStorage.getItem('linksBackup');
+            if (backupData) {
+                try {
+                    const backup = JSON.parse(backupData);
+                    const backupTime = new Date(backup.timestamp);
+                    const backupStatus = document.getElementById('backupStatus');
+                    backupStatus.textContent = `Son yedekleme: ${backupTime.toLocaleString('tr-TR')}`;
+                    backupStatus.style.color = '#4caf50';
+                } catch (e) {
+                    // Hata durumunda sessizce devam et
+                }
+            }
+        });
+        
+        // Tüm değişiklikleri kaydet
+        async function saveAllChanges() {
+            if (!hasUnsavedChanges) {
+                alert('Kaydedilecek değişiklik yok!');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('saveAllBtn');
+            const originalText = saveBtn.textContent;
+            
+            try {
+                // Butonu devre dışı bırak ve yükleniyor mesajı göster
+                saveBtn.disabled = true;
+                saveBtn.textContent = '⏳ KAYDEDİLİYOR...';
+                
+                // Önce bekleyen fotoğrafları yükle
+                for (const photoData of pendingPhotos) {
+                    try {
+                        const photoPath = await uploadPhotoToGithub(photoData.file);
+                        // Fotoğraf yolunu ilgili link'e ekle
+                        if (photoData.linkIndex !== undefined) {
+                            // Index ile eşleştir
+                            if (links[photoData.linkIndex]) {
+                                links[photoData.linkIndex].foto = photoPath;
+                                delete links[photoData.linkIndex].tempId;
+                            }
+                        } else if (photoData.tempId) {
+                            // tempId ile eşleştir
+                            const link = links.find(l => l.tempId === photoData.tempId);
+                            if (link) {
+                                link.foto = photoPath;
+                                delete link.tempId;
+                            }
+                        }
+                    } catch (photoError) {
+                        console.error('Fotoğraf yüklenirken hata:', photoError);
+                        throw new Error('Fotoğraf yüklenemedi: ' + photoError.message);
+                    }
+                }
+                
+                // TempId'leri temizle (artık gerekli değil)
+                links.forEach(link => {
+                    if (link.tempId) {
+                        delete link.tempId;
+                    }
+                });
+                
+                // Tüm linkleri GitHub'a kaydet
+                await updateLinksJsonOnGithub(links);
+                
+                // Bekleyen fotoğrafları temizle
+                pendingPhotos = [];
+                hasUnsavedChanges = false;
+                updateUnsavedChangesStatus();
+                
+                // Linkleri yeniden yükle (GitHub'dan)
+                await loadLinks();
+                
+                // Geçmişi temizle (kaydedildiği için artık gerekli değil)
+                linksHistory = [];
+                
+                // Otomatik yedekleme
+                if (autoSaveEnabled) {
+                    autoBackupToLocal();
+                }
+                
+                showSuccessMessage('Tüm değişiklikler başarıyla kaydedildi!');
+            } catch (error) {
+                console.error('Değişiklikler kaydedilirken hata oluştu:', error);
+                alert('Değişiklikler kaydedilirken hata oluştu: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
         }
         
         // Dosyayı base64'ye çevirme fonksiyonu
@@ -1128,7 +1571,7 @@
         
         // Links.json'u GitHub'a güncelle (SHA conflict'leri için retry mantığı ile)
         async function updateLinksJsonOnGithub(links) {
-            const maxRetries = 3;
+            const maxRetries = 5;
             let retries = 0;
             
             while (retries < maxRetries) {
@@ -1136,7 +1579,7 @@
                     let sha = '';
                     let fileExists = true;
                     
-                    // Mevcut dosyanın SHA'sını almayı dene
+                    // Her retry'da en güncel dosyayı al
                     try {
                         const fileInfo = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
                         sha = fileInfo.sha;
@@ -1167,12 +1610,18 @@
                     
                     return true;
                 } catch (error) {
-                    // SHA conflict hatası için retry
-                    if (error.message.includes('does not match') && error.message.includes('409') && retries < maxRetries - 1) {
+                    // SHA conflict hatası için retry (409 veya "does not match" içeren hatalar)
+                    const isConflictError = error.message.includes('does not match') || 
+                                          error.message.includes('409') || 
+                                          error.message.includes('SHA') ||
+                                          error.message.includes('sha');
+                    
+                    if (isConflictError && retries < maxRetries - 1) {
                         retries++;
                         console.log(`SHA conflict! Yeniden deniyorum (${retries}/${maxRetries})...`);
-                        // Kısa bir bekleme süresi ekle
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        // Her retry'da bekleme süresini artır (exponential backoff)
+                        const waitTime = Math.min(500 * Math.pow(2, retries - 1), 2000);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
                         continue;
                     }
                     
@@ -1181,7 +1630,7 @@
                     
                     if (error.message.includes('Resource not accessible')) {
                         errorMessage += 'GitHub tokenınızın yeterli izinleri yok! Lütfen tokenınızı kontrol edin.';
-                    } else if (error.message.includes('SHA not valid') || error.message.includes('does not match')) {
+                    } else if (error.message.includes('SHA not valid') || error.message.includes('does not match') || error.message.includes('409')) {
                         errorMessage += 'Dosya güncellenmiş olabilir. Lütfen sayfayı yenileyin ve tekrar deneyin.';
                     } else if (error.message.includes('Not Found')) {
                         errorMessage += 'Depo veya branch bulunamadı! Lütfen GitHub ayarlarınızı kontrol edin.';
@@ -1278,59 +1727,56 @@
             }
             
             try {
-                // 1. Mevcut linkleri al veya boş dizi oluştur (koruma katmanı)
-                let links = [];
-                try {
-                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    // Türkçe karakter desteği için b64DecodeUnicode kullan
-                    const parsedContent = JSON.parse(b64DecodeUnicode(fileContent.content));
-                    // Eğer parse edilen veri dizi değilse veya boşsa boş dizi kullan
-                    links = Array.isArray(parsedContent) ? parsedContent : [];
-                    console.log('Mevcut linkler sayısı:', links.length);
-                } catch (getFileError) {
-                    // Dosya bulunamazsa boş dizi kullan
-                    if (getFileError.message.includes('Not Found')) {
-                        links = [];
-                        console.log('Yeni links.json oluşturulacak');
-                    } else {
-                        throw getFileError;
-                    }
-                }
-                
-                // 2. Fotoğraf işlemleri
+                // 1. Fotoğraf işlemleri
                 let fotoPath = '';
+                const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                
                 if (file) {
-                    // Yeni fotoğraf yüklendi
-                    fotoPath = await uploadPhotoToGithub(file);
+                    // Fotoğrafı bekleyen listesine ekle (henüz yükleme)
+                    pendingPhotos.push({
+                        file: file,
+                        tempId: tempId
+                    });
+                    fotoPath = ''; // Geçici olarak boş, kaydetme sırasında yüklenecek
                 } else if (selectedPhotoPath) {
                     // Galeriden fotoğraf seçildi
                     fotoPath = selectedPhotoPath;
                 }
                 
-                // 3. Yeni linki ekle (güvenli yapı)
+                // 2. Yeni linki yerel array'e ekle
                 const newLink = {
                     isim: isim,
                     link: link,
                     foto: fotoPath || '',
                     clickCount: 0,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    tempId: file ? tempId : undefined // Fotoğraf varsa tempId ekle
                 };
                 
                 links.push(newLink);
                 
-                // 4. Links.json'u güncelle (güvenli yazma)
-                await updateLinksJsonOnGithub(links);
-                
-                // 5. Formu temizle
+                // 3. Formu temizle
                 this.reset();
                 // Galeri seçimini temizle
                 document.getElementById('selectedPhoto').value = '';
                 document.getElementById('selectedPhotoDisplay').textContent = '';
                 
-                // 6. Linkleri yeniden yükle
-                loadLinks();
+                // 4. Geçmişe kaydet
+                saveToHistory();
                 
-                alert('Link başarıyla eklendi! Ana sayfada görüntülenebilir.');
+                // 5. Linkleri göster
+                displayLinks(links);
+                
+                // 6. Değişiklik durumunu güncelle
+                hasUnsavedChanges = true;
+                updateUnsavedChangesStatus();
+                
+                // 7. Otomatik yedekleme
+                if (autoSaveEnabled) {
+                    autoBackupToLocal();
+                }
+                
+                showSuccessMessage('Link eklendi! Değişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.');
             } catch (error) {
                 console.error('Link eklenirken hata oluştu:', error);
                 alert('Link eklenirken hata oluştu: ' + error.message);
@@ -1340,7 +1786,13 @@
         // Edit modalını aç
         function openEditModal(index) {
             const link = links[index];
-            document.getElementById('editLinkId').value = index;
+            // Orijinal link verilerini sakla (index yerine benzersiz özellikler kullan)
+            document.getElementById('editLinkId').value = JSON.stringify({
+                originalIsim: link.isim,
+                originalLink: link.link,
+                originalCreatedAt: link.createdAt || '',
+                index: index // Fallback olarak index'i de sakla
+            });
             document.getElementById('editLinkName').value = link.isim;
             document.getElementById('editLinkUrl').value = link.link;
             // Fotoğraf inputu temizle
@@ -1374,7 +1826,21 @@
         editLinkForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const index = parseInt(document.getElementById('editLinkId').value);
+            const linkDataStr = document.getElementById('editLinkId').value;
+            let linkIdentifier;
+            try {
+                linkIdentifier = JSON.parse(linkDataStr);
+            } catch (parseError) {
+                // Eski format (sadece index) için geriye dönük uyumluluk
+                const oldIndex = parseInt(linkDataStr);
+                if (!isNaN(oldIndex)) {
+                    linkIdentifier = { index: oldIndex };
+                } else {
+                    alert('Geçersiz link verisi! Lütfen sayfayı yenileyin.');
+                    return;
+                }
+            }
+            
             const isim = document.getElementById('editLinkName').value.trim();
             const link = document.getElementById('editLinkUrl').value.trim();
             const fileInput = document.getElementById('editLinkPhoto');
@@ -1386,55 +1852,80 @@
             }
             
             try {
-                // 1. Mevcut linkleri al veya boş dizi oluştur
-                let links = [];
-                try {
-                    const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                    // Türkçe karakter desteği için b64DecodeUnicode kullan
-                    links = JSON.parse(b64DecodeUnicode(fileContent.content));
-                    // Eğer parse edilen veri dizi değilse boş dizi kullan
-                    if (!Array.isArray(links)) {
-                        links = [];
-                    }
-                } catch (getFileError) {
-                    // Dosya bulunamazsa boş dizi kullan
-                    if (getFileError.message.includes('Not Found')) {
-                        links = [];
-                    } else {
-                        throw getFileError;
+                // 1. Düzenlenecek linki bul (önce benzersiz özelliklere göre, sonra index'e göre)
+                let linkIndex = -1;
+                
+                if (linkIdentifier.originalIsim && linkIdentifier.originalLink) {
+                    // Orijinal verilere göre bul
+                    linkIndex = links.findIndex(l => 
+                        l.isim === linkIdentifier.originalIsim && 
+                        l.link === linkIdentifier.originalLink &&
+                        (l.createdAt || '') === (linkIdentifier.originalCreatedAt || '')
+                    );
+                }
+                
+                // Bulunamazsa index kullan (fallback)
+                if (linkIndex === -1 && linkIdentifier.index !== undefined) {
+                    const fallbackIndex = linkIdentifier.index;
+                    if (fallbackIndex >= 0 && fallbackIndex < links.length) {
+                        linkIndex = fallbackIndex;
                     }
                 }
                 
-                // 2. Index geçerli mi kontrol et
-                if (index < 0 || index >= links.length) {
-                    throw new Error('Geçersiz link indexi!');
+                if (linkIndex === -1) {
+                    alert('Düzenlenecek link bulunamadı! Lütfen sayfayı yenileyin.');
+                    closeEditModal();
+                    return;
                 }
                 
-                let fotoPath = links[index].foto || '';
+                // 2. Mevcut link verilerini koru
+                const existingLink = links[linkIndex];
+                let fotoPath = existingLink.foto || '';
+                const clickCount = existingLink.clickCount || 0;
+                const createdAt = existingLink.createdAt || new Date().toISOString();
+                const tempId = existingLink.tempId;
                 
-                // 3. Eğer yeni fotoğraf yüklendiyse GitHub'a yükle
+                // 3. Eğer yeni fotoğraf yüklendiyse bekleyen listesine ekle
                 if (file) {
-                    fotoPath = await uploadPhotoToGithub(file);
+                    const newTempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                    pendingPhotos.push({
+                        file: file,
+                        tempId: newTempId,
+                        linkIndex: linkIndex
+                    });
+                    // Geçici olarak boş bırak, kaydetme sırasında yüklenecek
+                    fotoPath = '';
                 }
                 
-                // 4. Linki güncelle (clickCount korunur)
-                links[index] = { 
+                // 4. Linki yerel array'de güncelle
+                links[linkIndex] = { 
                     isim, 
                     link, 
                     foto: fotoPath, 
-                    clickCount: links[index].clickCount || 0 
+                    clickCount: clickCount,
+                    createdAt: createdAt,
+                    tempId: file ? (tempId || 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)) : tempId
                 };
                 
-                // 5. Links.json'u güncelle
-                await updateLinksJsonOnGithub(links);
+                // 5. Geçmişe kaydet
+                saveToHistory();
                 
                 // 6. Modalı kapat
                 closeEditModal();
                 
-                // 7. Linkleri yeniden yükle
-                loadLinks();
+                // 7. Linkleri göster
+                displayLinks(links);
                 
-                alert('Link başarıyla güncellendi!');
+                // 8. Değişiklik durumunu güncelle
+                hasUnsavedChanges = true;
+                updateUnsavedChangesStatus();
+                
+                // 9. Otomatik yedekleme
+                if (autoSaveEnabled) {
+                    autoBackupToLocal();
+                }
+                
+                showSuccessMessage('Link güncellendi! Değişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.');
             } catch (error) {
                 console.error('Link düzenlenirken hata oluştu:', error);
                 alert('Link düzenlenirken hata oluştu: ' + error.message);
@@ -1442,44 +1933,48 @@
         });
         
         // Link sil
-        async function deleteLink(index) {
+        function deleteLink(index) {
             // Güçlü onay sistemi
             const link = links[index];
             if (!link) return;
             
             const linkName = link.isim;
-            if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!\nLinkle ilişkili fotoğraf GitHub'da kalacaktır.`)) {
+            if (!confirm(`${linkName} adlı linki silmek istediğinizden emin misiniz?\n\n⚠️ Bu işlem geri alınamaz!\nDeğişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.`)) {
                 return;
             }
             
             try {
-                // 1. En son linkleri GitHub'dan al (SHA conflict önlemek için)
-                const fileContent = await githubApiRequest('contents/links.json?ref=' + githubSettings.branch);
-                // Türkçe karakter desteği için b64DecodeUnicode kullan
-                let latestLinks = JSON.parse(b64DecodeUnicode(fileContent.content));
+                // 1. Bekleyen fotoğraflardan bu link'e ait olanları kaldır
+                pendingPhotos = pendingPhotos.filter(p => {
+                    if (p.linkIndex === index) {
+                        return false;
+                    }
+                    // Eğer tempId ile eşleşiyorsa da kaldır
+                    if (link.tempId && p.tempId === link.tempId) {
+                        return false;
+                    }
+                    return true;
+                });
                 
-                // Eğer parse edilen veri dizi değilse boş dizi kullan
-                if (!Array.isArray(latestLinks)) {
-                    latestLinks = [];
+                // 2. Linki yerel array'den sil
+                links.splice(index, 1);
+                
+                // 3. Geçmişe kaydet
+                saveToHistory();
+                
+                // 4. Linkleri göster
+                displayLinks(links);
+                
+                // 5. Değişiklik durumunu güncelle
+                hasUnsavedChanges = true;
+                updateUnsavedChangesStatus();
+                
+                // 6. Otomatik yedekleme
+                if (autoSaveEnabled) {
+                    autoBackupToLocal();
                 }
                 
-                // 2. Linki sil (indexe göre değil, link ismine veya diğer benzersiz bir özelliğe göre)
-                const linkIndex = latestLinks.findIndex(l => l.isim === link.isim && l.link === link.link);
-                if (linkIndex === -1) {
-                    throw new Error('Link bulunamadı! Dosya güncellenmiş olabilir.');
-                }
-                
-                const deletedLink = latestLinks.splice(linkIndex, 1)[0];
-                
-                // 3. Links.json'u güncelle
-                await updateLinksJsonOnGithub(latestLinks);
-                
-                // 4. Linkleri yeniden yükle
-                loadLinks();
-                
-                // 5. Silme işlemi sonrası bilgi
-                console.log('Silinen link:', deletedLink);
-                alert(`${linkName} başarıyla silindi!`);
+                showSuccessMessage(`${linkName} silindi! Değişiklikleri kaydetmek için "TÜM DEĞİŞİKLİKLERİ KAYDET" butonuna basın.`);
             } catch (error) {
                 console.error('Link silinirken hata oluştu:', error);
                 alert('Link silinirken hata oluştu: ' + error.message);
