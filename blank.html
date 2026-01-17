@@ -361,11 +361,10 @@
         function displayLinks(links) {
             const container = document.getElementById('links-container');
             
-            // GitHub ayarlarını al (Önce LocalStorage, sonra URL'den otomatik tespit)
+            // GitHub ayarlarını al
             let githubRepo = localStorage.getItem('githubRepo') || '';
             let githubBranch = localStorage.getItem('githubBranch') || 'main';
             
-            // Eğer LocalStorage'da yoksa ve GitHub Pages üzerindeysek URL'den tespit etmeye çalış
             if (!githubRepo && window.location.hostname.includes('github.io')) {
                 const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
                 if (pathParts.length > 0) {
@@ -379,51 +378,43 @@
             
             if (!links || links.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #cccccc; padding: 40px; font-size: 18px;">Henüz hiç link eklenmemiş.</p>';
-                console.log('Linkler boş veya yüklenemedi');
                 return;
             }
             
-            // Linkleri tıklama sayısına göre büyükten küçüğe sırala
+            // Linkleri sırala
             const sortedLinks = [...links].sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
             
-            console.log('Gösterilecek link sayısı:', sortedLinks.length);
-            
-            const validLinks = sortedLinks.filter(link => {
-                if (!link || !link.isim || !link.link) {
-                    console.log('Geçersiz link atlandı:', link);
-                    return false;
-                }
-                return true;
-            });
+            const validLinks = sortedLinks.filter(link => link && link.isim && link.link);
             
             if (validLinks.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #ff4444; padding: 40px; font-size: 18px;">Geçerli link bulunamadı!</p>';
                 return;
             }
             
-            container.innerHTML = validLinks.map((link, index) => {
+            container.innerHTML = validLinks.map((link) => {
                 let fotoUrl = '';
                 if (link.foto) {
-                    // Eğer link.foto zaten bir URL ise doğrudan kullan
                     if (link.foto.startsWith('http')) {
                         fotoUrl = link.foto;
                     } else {
-                        // GitHub üzerinden çek (githubBaseUrl varsa başına ekle)
-                        const cleanPath = link.foto.replace(/^\/+/, ''); // Başındaki / işaretini temizle
+                        const cleanPath = link.foto.replace(/^\/+/, '');
                         fotoUrl = githubBaseUrl ? githubBaseUrl + encodeURI(cleanPath) : encodeURI(cleanPath);
                     }
                 }
                 
+                // Güvenli anahtar oluştur (CounterAPI için)
+                const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                
                 return `
                 <div class="link-card">
-                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #ffd700; z-index: 10; border: 1px solid rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                        <span style="font-size: 14px;">🔥</span> ${link.clickCount || 0}
+                    <div id="counter-wrapper-${safeKey}" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #ffd700; z-index: 10; border: 1px solid rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; font-weight: bold;">
+                        <span style="font-size: 14px;">🔥</span> <span id="counter-${safeKey}">${link.clickCount || 0}</span>
                     </div>
                     ${fotoUrl ? `<img src="${fotoUrl}" alt="${link.isim}" class="link-card-image" onerror="this.style.display='none'">` : '<div class="link-card-image" style="background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); display: flex; align-items: center; justify-content: center; color: #ff8c00; font-size: 48px;">📷</div>'}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">
-                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer" onclick="handleLinkClick('${link.createdAt || link.isim}')">
+                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer" onclick="handleLinkClick('${link.createdAt || link.isim}', '${safeKey}')">
                                 İÇERİĞE GİT
                             </a>
                         </div>
@@ -431,11 +422,43 @@
                 </div>
             `;
             }).join('');
+
+            // Canlı verileri CounterAPI'den çek
+            validLinks.forEach(link => {
+                const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                fetchLiveCount(safeKey);
+            });
         }
         
+        // CounterAPI'den canlı veriyi çek
+        async function fetchLiveCount(safeKey) {
+            try {
+                const response = await fetch(`https://api.counterapi.dev/v1/reushub_clicks/${safeKey}`);
+                const data = await response.json();
+                if (data && data.count !== undefined) {
+                    const counterEl = document.getElementById(`counter-${safeKey}`);
+                    if (counterEl) {
+                        counterEl.innerText = data.count;
+                    }
+                }
+            } catch (error) {
+                console.error('Sayaç çekilemedi:', safeKey, error);
+            }
+        }
+
         // Tıklama sayısını artırma fonksiyonu
-        async function handleLinkClick(id) {
-            // Sadece admin yetkisi olan tarayıcılarda GitHub'a yazar
+        async function handleLinkClick(id, safeKey) {
+            // 1. Herkes için: CounterAPI'yi artır
+            try {
+                fetch(`https://api.counterapi.dev/v1/reushub_clicks/${safeKey}/up`);
+                // UI'ı anında güncelle
+                const counterEl = document.getElementById(`counter-${safeKey}`);
+                if (counterEl) {
+                    counterEl.innerText = parseInt(counterEl.innerText) + 1;
+                }
+            } catch (e) { console.error('API artırılamadı:', e); }
+
+            // 2. Sadece admin için: GitHub yedeğini güncelle
             const token = localStorage.getItem('githubToken');
             const repo = localStorage.getItem('githubRepo');
             const branch = localStorage.getItem('githubBranch') || 'main';
@@ -443,19 +466,16 @@
             if (!token || !repo) return;
             
             try {
-                // Mevcut linkleri al
                 const response = await fetch(`https://api.github.com/repos/${repo}/contents/links.json?ref=${branch}`, {
                     headers: { 'Authorization': `token ${token}` }
                 });
                 const data = await response.json();
                 const links = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 
-                // Tıklanan linki bul ve artır
                 const linkIndex = links.findIndex(l => (l.createdAt || l.isim) === id);
                 if (linkIndex !== -1) {
                     links[linkIndex].clickCount = (links[linkIndex].clickCount || 0) + 1;
                     
-                    // GitHub'a geri yaz
                     const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(links, null, 2))));
                     await fetch(`https://api.github.com/repos/${repo}/contents/links.json`, {
                         method: 'PUT',
@@ -464,7 +484,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            message: 'Update click count',
+                            message: 'Update click count (Admin)',
                             content: updatedContent,
                             sha: data.sha,
                             branch: branch
@@ -472,7 +492,7 @@
                     });
                 }
             } catch (error) {
-                console.error('Tıklama kaydedilemedi:', error);
+                console.error('GitHub yedeği güncellenemedi:', error);
             }
         }
     </script>

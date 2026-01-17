@@ -1166,7 +1166,7 @@
         }
         
         // Linkleri göster
-        function displayLinks(linksToDisplay) {
+        function displayLinks(linksToDisplay = links) {
             const linksList = document.getElementById('linksList');
             
             if (linksToDisplay.length === 0) {
@@ -1174,17 +1174,18 @@
                 return;
             }
             
-            // Linkleri tıklama sayısına göre büyükten küçüğe sırala
+            // Linkleri sırala
             const sortedLinks = [...linksToDisplay].sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
             
             linksList.innerHTML = sortedLinks.map((link, index) => {
-                // Link özelliklerini güvenli bir şekilde al
                 const isim = link.isim;
                 const linkUrl = link.link;
                 const foto = link.foto || '';
                 const clickCount = link.clickCount || 0;
                 
-                // GitHub üzerinden fotoğraf URL'si oluştur
+                // Güvenli anahtar oluştur (CounterAPI için)
+                const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                
                 let fotoDisplayUrl = '';
                 if (foto) {
                     if (foto.startsWith('http')) {
@@ -1192,7 +1193,7 @@
                     } else if (githubSettings.repo) {
                         fotoDisplayUrl = `https://raw.githubusercontent.com/${githubSettings.repo}/${githubSettings.branch}/${foto}`;
                     } else {
-                        fotoDisplayUrl = foto; // Fallback to relative
+                        fotoDisplayUrl = foto;
                     }
                 }
                 
@@ -1201,15 +1202,15 @@
                     <div class="link-info" style="display: flex; align-items: center; gap: 15px;">
                         <div style="position: relative;">
                             ${fotoDisplayUrl ? `<img src="${fotoDisplayUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #444;" onerror="this.src='https://via.placeholder.com/60?text=Hata'">` : '<div style="width: 60px; height: 60px; background: #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #666; font-size: 24px;">📷</div>'}
-                            <div style="position: absolute; -10px; -10px; background: #ff8c00; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 2px solid #1a1a1a;">
-                                ${clickCount}
+                            <div style="position: absolute; top: -5px; right: -5px; background: #ff8c00; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 2px solid #1a1a1a;">
+                                <span id="admin-counter-small-${safeKey}">${clickCount}</span>
                             </div>
                         </div>
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <h3 style="margin: 0;">${isim}</h3>
                                 <span style="background: rgba(255, 140, 0, 0.1); color: #ff8c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
-                                    🔥 ${clickCount} Tıklama
+                                    🔥 <span id="admin-counter-text-${safeKey}">${clickCount}</span> Tıklama
                                 </span>
                             </div>
                             <p style="margin: 5px 0; color: #aaa; font-size: 13px;">${linkUrl}</p>
@@ -1223,6 +1224,28 @@
                 </div>
             `;
             }).join('');
+
+            // Canlı verileri CounterAPI'den çek
+            sortedLinks.forEach(link => {
+                const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                fetchLiveCountForAdmin(safeKey);
+            });
+        }
+
+        // Admin için canlı veriyi çek
+        async function fetchLiveCountForAdmin(safeKey) {
+            try {
+                const response = await fetch(`https://api.counterapi.dev/v1/reushub_clicks/${safeKey}`);
+                const data = await response.json();
+                if (data && data.count !== undefined) {
+                    const smallEl = document.getElementById(`admin-counter-small-${safeKey}`);
+                    const textEl = document.getElementById(`admin-counter-text-${safeKey}`);
+                    if (smallEl) smallEl.innerText = data.count;
+                    if (textEl) textEl.innerText = data.count;
+                }
+            } catch (error) {
+                console.error('Sayaç çekilemedi:', safeKey, error);
+            }
         }
         
         // Değişiklik durumunu güncelle
