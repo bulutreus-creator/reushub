@@ -6,6 +6,15 @@
     <title>Reushub</title>
     <link rel="stylesheet" href="styles.css">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7382042114920384" crossorigin="anonymous"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBBYXFC8RC"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-MBBYXFC8RC');
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
         
@@ -17,6 +26,22 @@
             font-family: 'Roboto', sans-serif;
             color: #ffffff;
             overflow-x: hidden;
+            /* Kod Koruma CSS */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        /* Görsellerin sürüklenmesini engelle */
+        img {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            pointer-events: none;
         }
         
         body::before {
@@ -229,7 +254,44 @@
     </div>
     
     <script>
-        // Sayfa yüklendiğinde linkleri yükle ve kullanıcı sayısını güncelle
+        // KOD KORUMA SİSTEMİ
+        (function() {
+            // 1. Sağ Tıklama Engelleme
+            document.addEventListener('contextmenu', e => e.preventDefault());
+
+            // 2. Klavye Kısayolları Engelleme (F12, Ctrl+U, Ctrl+Shift+I, vb.)
+            document.onkeydown = function(e) {
+                if (
+                    e.keyCode === 123 || // F12
+                    (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || // Ctrl+Shift+I/J
+                    (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                    (e.ctrlKey && e.keyCode === 83)    // Ctrl+S
+                ) {
+                    return false;
+                }
+            };
+
+            // 3. Geliştirici Araçları Tespiti (Konsol Kontrolü)
+            let devtools = function() {};
+            devtools.toString = function() {
+                return 'devtools';
+            }
+            
+            setInterval(function() {
+                if (window.devtoolsOpen) {
+                    document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;color:white;font-family:sans-serif;text-align:center;padding:20px;"><h1>⚠️ GÜVENLİK UYARISI</h1><p>Geliştirici araçları kullanımı engellenmiştir.</p></div>';
+                }
+            }, 1000);
+
+            // 4. Konsol Temizleme ve Mesaj
+            setInterval(() => {
+                console.clear();
+                console.log('%cDUR!', 'color:red;font-size:40px;font-weight:bold;-webkit-text-stroke:1px black;');
+                console.log('%cBu alan kod hırsızlığına karşı korunmaktadır.', 'font-size:20px;');
+            }, 2000);
+        })();
+
+        // Sayfa yüklendiğinde linkleri yükle
         document.addEventListener('DOMContentLoaded', function() {
             fetchLinks();
 
