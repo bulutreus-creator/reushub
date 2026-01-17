@@ -383,9 +383,12 @@
                 return;
             }
             
-            console.log('Gösterilecek link sayısı:', links.length);
+            // Linkleri tıklama sayısına göre büyükten küçüğe sırala
+            const sortedLinks = [...links].sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
             
-            const validLinks = links.filter(link => {
+            console.log('Gösterilecek link sayısı:', sortedLinks.length);
+            
+            const validLinks = sortedLinks.filter(link => {
                 if (!link || !link.isim || !link.link) {
                     console.log('Geçersiz link atlandı:', link);
                     return false;
@@ -398,7 +401,7 @@
                 return;
             }
             
-            container.innerHTML = validLinks.map(link => {
+            container.innerHTML = validLinks.map((link, index) => {
                 let fotoUrl = '';
                 if (link.foto) {
                     // Eğer link.foto zaten bir URL ise doğrudan kullan
@@ -413,11 +416,14 @@
                 
                 return `
                 <div class="link-card">
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #ffd700; z-index: 10; border: 1px solid rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; font-weight: bold;">
+                        <span style="font-size: 14px;">🔥</span> ${link.clickCount || 0}
+                    </div>
                     ${fotoUrl ? `<img src="${fotoUrl}" alt="${link.isim}" class="link-card-image" onerror="this.style.display='none'">` : '<div class="link-card-image" style="background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); display: flex; align-items: center; justify-content: center; color: #ff8c00; font-size: 48px;">📷</div>'}
                     <div class="link-card-content">
                         <h3>${link.isim}</h3>
                         <div class="link-btn-container">
-                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer">
+                            <a href="${link.link}" class="link-btn" target="_blank" rel="noopener noreferrer" onclick="handleLinkClick('${link.createdAt || link.isim}')">
                                 İÇERİĞE GİT
                             </a>
                         </div>
@@ -425,6 +431,49 @@
                 </div>
             `;
             }).join('');
+        }
+        
+        // Tıklama sayısını artırma fonksiyonu
+        async function handleLinkClick(id) {
+            // Sadece admin yetkisi olan tarayıcılarda GitHub'a yazar
+            const token = localStorage.getItem('githubToken');
+            const repo = localStorage.getItem('githubRepo');
+            const branch = localStorage.getItem('githubBranch') || 'main';
+            
+            if (!token || !repo) return;
+            
+            try {
+                // Mevcut linkleri al
+                const response = await fetch(`https://api.github.com/repos/${repo}/contents/links.json?ref=${branch}`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                const data = await response.json();
+                const links = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                
+                // Tıklanan linki bul ve artır
+                const linkIndex = links.findIndex(l => (l.createdAt || l.isim) === id);
+                if (linkIndex !== -1) {
+                    links[linkIndex].clickCount = (links[linkIndex].clickCount || 0) + 1;
+                    
+                    // GitHub'a geri yaz
+                    const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(links, null, 2))));
+                    await fetch(`https://api.github.com/repos/${repo}/contents/links.json`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: 'Update click count',
+                            content: updatedContent,
+                            sha: data.sha,
+                            branch: branch
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error('Tıklama kaydedilemedi:', error);
+            }
         }
     </script>
 </body>

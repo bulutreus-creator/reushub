@@ -1174,11 +1174,15 @@
                 return;
             }
             
-            linksList.innerHTML = linksToDisplay.map((link, index) => {
+            // Linkleri tıklama sayısına göre büyükten küçüğe sırala
+            const sortedLinks = [...linksToDisplay].sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
+            
+            linksList.innerHTML = sortedLinks.map((link, index) => {
                 // Link özelliklerini güvenli bir şekilde al
                 const isim = link.isim;
                 const linkUrl = link.link;
                 const foto = link.foto || '';
+                const clickCount = link.clickCount || 0;
                 
                 // GitHub üzerinden fotoğraf URL'si oluştur
                 let fotoDisplayUrl = '';
@@ -1195,11 +1199,21 @@
                 return `
                 <div class="link-item">
                     <div class="link-info" style="display: flex; align-items: center; gap: 15px;">
-                        ${fotoDisplayUrl ? `<img src="${fotoDisplayUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; border: 1px solid #444;" onerror="this.src='https://via.placeholder.com/50?text=Hata'">` : '<div style="width: 50px; height: 50px; background: #333; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #666; font-size: 20px;">📷</div>'}
-                        <div>
-                            <h3>${isim}</h3>
-                            <p>${linkUrl}</p>
-                            <p style="font-size: 12px; color: #888; margin-top: 5px;">Yol: ${foto || 'Yok'}</p>
+                        <div style="position: relative;">
+                            ${fotoDisplayUrl ? `<img src="${fotoDisplayUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #444;" onerror="this.src='https://via.placeholder.com/60?text=Hata'">` : '<div style="width: 60px; height: 60px; background: #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #666; font-size: 24px;">📷</div>'}
+                            <div style="position: absolute; -10px; -10px; background: #ff8c00; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 2px solid #1a1a1a;">
+                                ${clickCount}
+                            </div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <h3 style="margin: 0;">${isim}</h3>
+                                <span style="background: rgba(255, 140, 0, 0.1); color: #ff8c00; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                    🔥 ${clickCount} Tıklama
+                                </span>
+                            </div>
+                            <p style="margin: 5px 0; color: #aaa; font-size: 13px;">${linkUrl}</p>
+                            <p style="font-size: 11px; color: #666; margin: 0;">Yol: ${foto || 'Yok'}</p>
                         </div>
                     </div>
                     <div class="link-actions">
@@ -1836,8 +1850,8 @@
                 // 5. Linkleri göster
                 displayLinks(links);
                 
-                // 6. Değişiklik durumunu güncelle
-                hasUnsavedChanges = true;
+                // 6. Değişiklik durumunu güncelle (Zaten GitHub'a yazıldığı için false olmalı)
+                hasUnsavedChanges = false;
                 updateUnsavedChangesStatus();
                 
                 // 7. Otomatik yedekleme
