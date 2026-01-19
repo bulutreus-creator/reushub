@@ -467,10 +467,21 @@
                 // Güvenli anahtar oluştur (CounterAPI için)
                 const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 
+                // Rastgele 10.000 üzeri sayaç mantığı
+                let fakeCount = localStorage.getItem('fake_count_' + safeKey);
+                if (!fakeCount) {
+                    // İlk kez giriliyorsa 10.000 - 15.000 arası rastgele sayı
+                    fakeCount = Math.floor(Math.random() * 5000) + 10000;
+                } else {
+                    // Sayfa her yenilendiğinde 5-15 arası artış
+                    fakeCount = parseInt(fakeCount) + Math.floor(Math.random() * 10) + 5;
+                }
+                localStorage.setItem('fake_count_' + safeKey, fakeCount);
+                
                 return `
                 <div class="link-card">
                     <div id="counter-wrapper-${safeKey}" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #ffd700; z-index: 10; border: 1px solid rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                        <span style="font-size: 14px;">🔥</span> <span id="counter-${safeKey}">${link.clickCount || 0}</span>
+                        <span style="font-size: 14px;">🔥</span> <span id="counter-${safeKey}">${fakeCount.toLocaleString('tr-TR')}</span>
                     </div>
                     ${fotoUrl ? `<img src="${fotoUrl}" alt="${link.isim}" class="link-card-image" onerror="this.style.display='none'">` : '<div class="link-card-image" style="background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); display: flex; align-items: center; justify-content: center; color: #ff8c00; font-size: 48px;">📷</div>'}
                     <div class="link-card-content">
@@ -485,11 +496,13 @@
             `;
             }).join('');
 
-            // Canlı verileri CounterAPI'den çek
+            // Canlı verileri CounterAPI'den çek (Devre dışı bırakıldı - Fake sayaç kullanılıyor)
+            /*
             validLinks.forEach(link => {
                 const safeKey = (link.createdAt || link.isim).toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 fetchLiveCount(safeKey);
             });
+            */
         }
         
         // CounterAPI'den canlı veriyi çek
@@ -510,6 +523,17 @@
 
         // Tıklama sayısını artırma fonksiyonu
         async function handleLinkClick(id, safeKey) {
+            // Fake sayacı artır
+            let fakeCount = localStorage.getItem('fake_count_' + safeKey);
+            if (fakeCount) {
+                fakeCount = parseInt(fakeCount) + 1;
+                localStorage.setItem('fake_count_' + safeKey, fakeCount);
+                const counterEl = document.getElementById(`counter-${safeKey}`);
+                if (counterEl) {
+                    counterEl.innerText = fakeCount.toLocaleString('tr-TR');
+                }
+            }
+
             // 1. Herkes için: CounterAPI'yi artır
             try {
                 fetch(`https://api.counterapi.dev/v1/reushub_clicks/${safeKey}/up`);
