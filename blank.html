@@ -443,12 +443,9 @@
                 return;
             }
             
-            // Linkleri sırala (Yeni eklenenler en üstte - createdAt değerine göre)
-            const sortedLinks = [...links].sort((a, b) => {
-                const dateA = a.createdAt || 0;
-                const dateB = b.createdAt || 0;
-                return dateB - dateA;
-            });
+            // Linkleri sırala (Yeni eklenenler en üstte - JSON sırasını tersine çevir)
+            // JSON dosyasına son eklenen link en yeni kabul edilir.
+            const sortedLinks = [...links].reverse();
             
             const validLinks = sortedLinks.filter(link => link && link.isim && link.link);
             
